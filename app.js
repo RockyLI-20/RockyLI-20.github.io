@@ -42,7 +42,6 @@ document.querySelectorAll('.disclosure-button').forEach(button => button.addEven
 }));
 let topicsPromise;
 let current = -1;
-const cache = {};
 buttons.forEach(button => button.addEventListener('click', async () => {
   const index = Number(button.dataset.topic);
   const panel = document.getElementById(button.getAttribute('aria-controls'));
@@ -66,7 +65,7 @@ buttons.forEach(button => button.addEventListener('click', async () => {
     const heading = document.createElement('h2');
     heading.textContent = topic.title;
     const extract = document.createElement('p');
-    extract.textContent = 'Loading introduction…';
+    extract.textContent = topic.introduction;
     const source = document.createElement('p');
     source.innerHTML = `<small>Abridged from <a href="https://en.wikipedia.org/wiki/${topic.wiki}">Wikipedia</a> · <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA</a></small>`;
     const label = document.createElement('h3');
@@ -95,19 +94,7 @@ buttons.forEach(button => button.addEventListener('click', async () => {
       panel.insertBefore(scope, label);
     }
     setPanel(button, panel, true);
-    try {
-      if (!cache[topic.wiki]) {
-        const url = new URL('https://en.wikipedia.org/w/api.php');
-        url.search = new URLSearchParams({action:'query',prop:'extracts',exintro:'1',explaintext:'1',exsentences:'3',titles:topic.wiki,format:'json',origin:'*'});
-        const response = await fetch(url);
-        if (!response.ok) throw Error('Wikipedia unavailable');
-        const data = await response.json();
-        cache[topic.wiki] = Object.values(data.query.pages)[0].extract;
-      }
-      if (current === index) extract.textContent = cache[topic.wiki] || 'Read the introduction on Wikipedia.';
-    } catch {
-      if (current === index) extract.textContent = 'The introduction is unavailable right now. Read it on Wikipedia using the link below.';
-    }
+
   } catch {
     if (current === index) panel.textContent = 'Unable to load the reading list. Please try again.';
     topicsPromise = null;
