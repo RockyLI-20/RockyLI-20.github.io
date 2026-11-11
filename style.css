@@ -24,3 +24,5 @@
 .market-columns{display:grid;grid-template-columns:1fr 1fr;gap:clamp(2rem,6vw,6rem)}.market-columns .skill-title{margin-top:0}.curated-reading{min-width:0}.reading-entry{padding:2.5rem 0;border-bottom:1px solid var(--line, #c9c5ab)}.reading-entry h3{font-size:clamp(1.4rem,2.3vw,1.9rem);line-height:1.25;margin:.8rem 0 1rem}.reading-entry ul{padding-left:1.25rem;line-height:1.65}.reading-entry li+li{margin-top:.6rem}
 
 @media (max-width: 700px){.market-columns{grid-template-columns:1fr;gap:3rem}}
+
+.topic-panel,.workflow-box{background:#f0eee6}.reading-heading{display:flex;align-items:start;gap:1rem}.reading-heading h3{flex:1}.reading-toggle{width:auto;min-width:44px;min-height:44px;justify-content:center;color:var(--accent);font-size:1.5rem}
