@@ -1,0 +1,439 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Ruifeng LI — statistics research, AI development, teaching, and market research."><title>Chapter 2. Bayesian Inference | Ruifeng LI</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&display=swap" rel="stylesheet"><link rel="stylesheet" href="../style.css"><script src="../app.js" defer></script><link rel="stylesheet" href="assets/tutorial.css?v=704fc235ecc0"></head><body><a class="skip" href="#main">Skip to content</a><header class="header wrap"><a class="brand" href="../index.html" aria-label="Ruifeng LI, home">Ruifeng LI</a><button class="menu-toggle" aria-expanded="false" aria-controls="nav">Menu <span>☰</span></button><nav id="nav" aria-label="Main navigation"><a href="../research.html">Research</a><a href="../teaching.html">Teaching</a><a href="../ai-development.html">AI Development</a><a href="../market-research.html">Market Research</a><a href="../writing.html">Writing</a></nav></header><main id="main"><article class="wrap bayes-page bayes-inference">
+  <a class="text-link" href="index.html">Interactive Bayesian Tool Box</a>
+  <p class="bayes-context">STAT 6206 · Chapter 2</p>
+  <h1>What will the next tosses look like?</h1>
+  <p class="bayes-intro">Predict a new batch of coin tosses, then check how well two regression models reproduce held-out data.</p>
+  <noscript><p>Enable JavaScript to run the experiments.</p></noscript>
+
+  <section class="bayes-workbench" aria-labelledby="prediction-title">
+    <div class="bayes-controls">
+      <h2 id="prediction-title">Make a prediction</h2>
+      <div class="inference-observed">
+        <div class="inference-count-heading">
+          <strong>Observed tosses</strong>
+          <output id="observed-total" for="observed-heads observed-tails">n = 17</output>
+        </div>
+        <div class="inference-counts">
+          <label class="bayes-range">
+            <span>Heads <output id="observed-heads-value" for="observed-heads">14</output></span>
+            <input id="observed-heads" type="range" min="0" max="20" value="14">
+          </label>
+          <label class="bayes-range">
+            <span>Tails <output id="observed-tails-value" for="observed-tails">3</output></span>
+            <input id="observed-tails" type="range" min="0" max="20" value="3">
+          </label>
+        </div>
+        <p class="bayes-feedback" id="import-limit" hidden>Kept up to 20 heads and 20 tails from Chapter 1.</p>
+      </div>
+      <label for="prediction-prior">Prior for the coin</label>
+      <select id="prediction-prior">
+        <option value="uniform">Uniform · Beta(1, 1)</option>
+        <option value="jeffreys">Jeffreys · Beta(½, ½)</option>
+        <option value="strong">Strong · Beta(20, 20)</option>
+      </select>
+      <label for="interval-example">Density to explore</label>
+      <select id="interval-example">
+        <option value="coin">Coin posterior</option>
+        <option value="mixture">Two peaks (teaching example)</option>
+      </select>
+      <label class="bayes-range">
+        <span>Future tosses <output id="future-value" for="future">10</output></span>
+        <input id="future" type="range" min="1" max="60" value="10">
+      </label>
+      <button type="button" class="bayes-action" id="draw-prediction">Simulate 200 future batches</button>
+      <div class="bayes-utility">
+        <button type="button" class="bayes-quiet" id="reset-inference">Reset example</button>
+      </div>
+    </div>
+    <div class="bayes-views">
+      <div class="bayes-pair">
+        <figure class="bayes-figure inference-chart">
+          <h3>Inference for θ</h3>
+          <ul class="bayes-legend" aria-label="Chart key">
+            <li class="bayes-key-prior">Prior density</li>
+            <li class="bayes-key-posterior">Posterior density</li>
+            <li class="inference-key-hpd">95% HPD</li>
+          </ul>
+          <div id="interval-plot"></div>
+          <figcaption id="interval-summary"></figcaption>
+        </figure>
+        <figure class="bayes-figure inference-chart">
+          <h3>Predictions for future tosses</h3>
+          <p>Drag across the bars or set the two endpoints.</p>
+          <div id="predictive-plot"></div>
+          <figcaption>
+            <div class="inference-prediction-status" role="status">
+              <div id="predictive-summary"></div>
+              <div id="predictive-simulated" hidden></div>
+            </div>
+            <p class="inference-next-toss"><label for="next-toss">Next toss · P(heads)</label> <output id="next-toss">78.9%</output></p>
+          </figcaption>
+        </figure>
+      </div>
+      <div class="inference-endpoints">
+        <label class="bayes-range">
+          <span>From <output id="range-from-value" for="range-from">7</output></span>
+          <input id="range-from" type="range" min="0" max="10" value="7">
+        </label>
+        <label class="bayes-range">
+          <span>Through <output id="range-to-value" for="range-to">10</output></span>
+          <input id="range-to" type="range" min="0" max="10" value="10">
+        </label>
+      </div>
+    </div>
+  </section>
+
+  <section id="model-check" aria-labelledby="check-title">
+    <h2 class="bayes-advanced-title" id="check-title">Posterior Predictive Checking</h2>
+    <p>Both models are fitted on the same set of 60 training observations. In each subsequent simulation, a group of coefficients is sampled from the posterior distribution and used to generate outcomes at 120 test points.</p>
+    <p class="check-specification">
+      <span><strong>Model specification:</strong>
+        <math><mi>Y</mi><mo>=</mo><msub><mi>x</mi><mn>1</mn></msub><msub><mi>β</mi><mn>1</mn></msub><mo>+</mo><msub><mi>x</mi><mn>2</mn></msub><msub><mi>β</mi><mn>2</mn></msub><mo>+</mo><mi>ε</mi></math>,
+        where <math><mi>ε</mi><mo>∼</mo><mi>N</mi><mo>(</mo><mn>0</mn><mo>,</mo><mn>1</mn><mo>)</mo></math>
+      </span>
+      <span><strong>Prior:</strong>
+        <math><msub><mi>β</mi><mi>j</mi></msub><mover accent="false"><mo>∼</mo><mtext>iid</mtext></mover><mi>N</mi><mo>(</mo><mn>0</mn><mo>,</mo><msup><mn>2</mn><mn>2</mn></msup><mo>)</mo></math>
+        for <math><mi>j</mi><mo>=</mo><mn>1</mn><mo>,</mo><mn>2</mn></math>.
+      </span>
+    </p>
+    <p>The true value of β₁ is 1. Use the slider to control the true value of β₂.</p>
+    <div class="check-controls">
+      <label class="bayes-range">
+        <span>True coefficient β₂ <output id="check-strength-value" for="check-strength">2</output></span>
+        <input id="check-strength" type="range" min="0" max="3" step="0.1" value="2">
+      </label>
+      <label for="check-view">Compare
+        <select id="check-view">
+          <option value="density">Outcome density</option>
+          <option value="trend">Mean outcome by x₂</option>
+        </select>
+      </label>
+      <button type="button" class="bayes-secondary" id="resample-check">Simulate new replicas</button>
+    </div>
+    <ul class="bayes-legend" aria-label="Chart key">
+      <li class="check-key-observed">Observed test data</li>
+      <li class="check-key-replicated">30 replicated test datasets</li>
+    </ul>
+    <div class="bayes-pair check-charts">
+      <figure class="bayes-figure">
+        <h3>True model</h3>
+        <p>y = x<sub>1</sub>β<sub>1</sub> + x<sub>2</sub>β<sub>2</sub> + ε</p>
+        <div id="check-full-plot"></div>
+      </figure>
+      <figure class="bayes-figure">
+        <h3>Alternative model</h3>
+        <p>y = x<sub>1</sub>β<sub>1</sub> + ε</p>
+        <div id="check-reduced-plot"></div>
+      </figure>
+    </div>
+    <p class="bayes-reference" id="check-guide" role="status" hidden>Each point averages 20 test outcomes in one of six groups ordered by x₂.</p>
+  </section>
+
+  <h2 class="bayes-advanced-title">Explore further</h2>
+  <details class="bayes-advanced" id="mh-lab">
+    <summary>Explore Metropolis–Hastings</summary>
+    <div class="bayes-advanced-body">
+      <p>Compare how far chains travel, how often they move, and how much information their draws carry.</p>
+      <div class="mh-controls">
+        <label>Target distribution
+          <select id="mh-distribution">
+            <option value="normal">1 · Standard Normal</option>
+            <option value="mixture" selected>2 · Two peaks</option>
+            <option value="banana">3 · Banana-shaped</option>
+            <option value="correlated">4 · Correlated Normal (ρ = 0.95)</option>
+          </select>
+        </label>
+        <label>Chains per setting
+          <select id="mh-chain-count"><option>2</option><option>3</option><option>4</option></select>
+        </label>
+        <label id="mh-coordinate-label" hidden>Coordinate for traces, ESS, ACF, and density
+          <select id="mh-coordinate"><option value="0">X</option><option value="1">Y</option></select>
+        </label>
+        <label class="mh-toggle"><input type="checkbox" id="mh-compare"> Compare two settings</label>
+      </div>
+      <p class="mh-target-note" id="mh-target-note"></p>
+      <div class="bayes-utility inference-buttons">
+        <button class="bayes-action" type="button" id="mh-step">Step once</button>
+        <button class="bayes-action" type="button" id="mh-live">Run live</button>
+        <button class="bayes-secondary" type="button" id="mh-run">Run 200 steps</button>
+        <button class="bayes-quiet" type="button" id="mh-reset">Reset chains</button>
+      </div>
+      <div id="mh-settings" class="mh-settings"></div>
+      <details class="bayes-explanation mh-notes">
+        <summary>How to read the diagnostics</summary>
+        <p>A symmetric Normal proposal gives acceptance probability min(1, target(proposal) / target(current)). A rejected step repeats the current state. Small steps can give high acceptance and highly correlated draws. Large steps can trigger frequent rejections.</p>
+        <p>ACF measures dependence at each lag. ESS here is a per-chain estimate using the initial positive pairs of autocorrelations through lag 40, on up to 1,000 states. It appears after 20 steps. Read it alongside the traces and whether each chain explores both sides of a two-peak target. The live density estimates use each chain’s latest 200 draws with a fixed Gaussian kernel bandwidth of 0.3.</p>
+        <p>Changing proposal SD during a run layers together results from two proposal widths. Reset chains to compare settings from the same starting states. STAT 6206 Chapter 2, pp. 7–11. <a href="https://mc-stan.org/docs/reference-manual/analysis.html#effective-sample-size.section">Stan reference on effective sample size</a>.</p>
+      </details>
+    </div>
+  </details>
+
+  <template id="mh-setting-template">
+    <section class="mh-setting">
+      <h3 data-mh="title"></h3>
+      <label class="bayes-range">
+        <span>Proposal SD <output data-mh="sd-value"></output></span>
+        <input data-mh="sd" type="range" min="0.1" max="10" step="0.1">
+      </label>
+      <p class="mh-hint" data-mh="hint"></p>
+      <table class="bayes-table mh-table">
+        <thead><tr><th scope="col">Chain</th><th scope="col">Acceptance</th><th scope="col">Last 100</th><th scope="col" data-mh="ess-title">ESS</th></tr></thead>
+        <tbody data-mh="metrics"></tbody>
+      </table>
+      <div class="mh-charts">
+        <figure class="bayes-figure">
+          <h4>Target and proposal</h4>
+          <div class="mh-start">
+            <label>Start for <select data-mh="start-chain"></select></label>
+            <label>X <input data-mh="start-x" type="number" step="0.1" required></label>
+            <label data-mh="start-y-label" hidden>Y <input data-mh="start-y" type="number" step="0.1" required></label>
+            <button class="bayes-secondary" type="button" data-mh="set-start">Set start</button>
+          </div>
+          <p data-mh="target-key"></p>
+          <div class="mh-target" data-mh="target"></div>
+          <figcaption data-mh="decision">Step once to see a proposal.</figcaption>
+        </figure>
+        <figure class="bayes-figure">
+          <h4>Trace</h4>
+          <div data-mh="trace"></div>
+        </figure>
+        <figure class="bayes-figure">
+          <h4>Autocorrelation (ACF)</h4>
+          <div data-mh="acf"></div>
+        </figure>
+        <figure class="bayes-figure">
+          <h4>Density by chain</h4>
+          <p>Gray line shows the target. Colored lines fill in as you run.</p>
+          <div data-mh="density"></div>
+        </figure>
+        <figure class="bayes-figure">
+          <h4>Acceptance trend</h4>
+          <p>Rolling 20-step rates over the latest 100 steps.</p>
+          <div data-mh="acceptance"></div>
+        </figure>
+      </div>
+    </section>
+  </template>
+
+  <details class="bayes-advanced" id="factor-lab">
+    <summary>Model comparison through Bayes Factor (BF)</summary>
+    <div class="bayes-advanced-body bf-lab">
+      <div class="bf-models bf-definitions">
+        <div><strong>Null model (M<sub>0</sub>):</strong><span>θ = 0.5</span></div>
+        <div><strong>Alternative model (M<sub>1</sub>):</strong><span>θ ∼ Beta(α, β), where α = β</span></div>
+      </div>
+      <h3 class="bf-heading">How it works</h3>
+      <div class="bf-formula">
+        <math display="block" aria-label="Posterior odds equal the Bayes factor times the prior odds">
+          <mfrac>
+            <mrow><mi>p</mi><mo>(</mo><msub><mi>M</mi><mn>1</mn></msub><mo>|</mo><mi>Y</mi><mo>)</mo></mrow>
+            <mrow><mi>p</mi><mo>(</mo><msub><mi>M</mi><mn>0</mn></msub><mo>|</mo><mi>Y</mi><mo>)</mo></mrow>
+          </mfrac>
+          <mo>=</mo>
+          <munder>
+            <munder accentunder="true">
+              <mfrac>
+                <mrow><mi>p</mi><mo>(</mo><mi>Y</mi><mo>|</mo><msub><mi>M</mi><mn>1</mn></msub><mo>)</mo></mrow>
+                <mrow><mi>p</mi><mo>(</mo><mi>Y</mi><mo>|</mo><msub><mi>M</mi><mn>0</mn></msub><mo>)</mo></mrow>
+              </mfrac>
+              <mo>⏟</mo>
+            </munder>
+            <mtext>Bayes factor</mtext>
+          </munder>
+          <mo>×</mo>
+          <munder>
+            <munder accentunder="true">
+              <mfrac>
+                <mrow><mi>p</mi><mo>(</mo><msub><mi>M</mi><mn>1</mn></msub><mo>)</mo></mrow>
+                <mrow><mi>p</mi><mo>(</mo><msub><mi>M</mi><mn>0</mn></msub><mo>)</mo></mrow>
+              </mfrac>
+              <mo>⏟</mo>
+            </munder>
+            <mtext>Prior odds</mtext>
+          </munder>
+        </math>
+      </div>
+      <div class="bf-controls">
+        <div>
+          <div class="inference-count-heading">
+            <strong>Observed tosses</strong>
+            <output id="factor-total" for="factor-heads factor-tails">n = 12</output>
+          </div>
+          <div class="inference-counts">
+            <label class="bayes-range">
+              <span>Heads <output id="factor-heads-value" for="factor-heads">10</output></span>
+              <input id="factor-heads" type="range" min="0" max="20" value="10">
+            </label>
+            <label class="bayes-range">
+              <span>Tails <output id="factor-tails-value" for="factor-tails">2</output></span>
+              <input id="factor-tails" type="range" min="0" max="20" value="2">
+            </label>
+          </div>
+        </div>
+        <div>
+          <label class="bayes-range">
+            <span>Prior probability of M₁ <output id="model-prob-value" for="model-prob">50%</output></span>
+            <input id="model-prob" type="range" min="5" max="95" value="50">
+          </label>
+          <label class="bayes-range">
+            <span>Beta shape under M₁ (α = β) <output id="factor-shape-value" for="factor-shape">1</output></span>
+            <input id="factor-shape" type="range" min="0.5" max="20" step="0.5" value="1">
+          </label>
+        </div>
+      </div>
+      <div class="bf-results">
+        <p>Posterior probabilities</p>
+        <div class="bf-models">
+          <section class="bf-model bf-null">
+            <h4>Null model (M<sub>0</sub>)</h4>
+            <div class="bf-reading">
+              <div>
+                <meter id="factor-bar-null" min="0" max="1" aria-label="Posterior probability of the null model"></meter>
+                <div class="bf-scale" aria-hidden="true"><span>0%</span><span>50%</span><span>100%</span></div>
+              </div>
+              <output id="factor-null"></output>
+            </div>
+          </section>
+          <section class="bf-model bf-alternative">
+            <h4>Alternative model (M<sub>1</sub>)</h4>
+            <div class="bf-reading">
+              <div>
+                <meter id="factor-bar-alternative" min="0" max="1" aria-label="Posterior probability of the alternative model"></meter>
+                <div class="bf-scale" aria-hidden="true"><span>0%</span><span>50%</span><span>100%</span></div>
+              </div>
+              <output id="factor-alternative"></output>
+            </div>
+          </section>
+        </div>
+        <p class="bf-summary" id="factor-summary" role="status"></p>
+      </div>
+      <table class="bayes-table bf-criterion">
+        <caption>Model selection criterion</caption>
+        <thead><tr><th scope="col">B<sub>10</sub></th><th scope="col">2 log B<sub>10</sub></th><th scope="col">Evidence against H<sub>0</sub> (M<sub>0</sub>)</th></tr></thead>
+        <tbody>
+          <tr><td>&lt; 1</td><td>&lt; 0</td><td>Negative (supports H<sub>0</sub> (M<sub>0</sub>))</td></tr>
+          <tr><td>1 to 3</td><td>0 to 2</td><td>Not worth more than a bare mention</td></tr>
+          <tr><td>3 to 20</td><td>2 to 6</td><td>Positive (supports H<sub>1</sub> (M<sub>1</sub>))</td></tr>
+          <tr><td>20 to 150</td><td>6 to 10</td><td>Strong</td></tr>
+          <tr><td>&gt; 150</td><td>&gt; 10</td><td>Decisive</td></tr>
+        </tbody>
+      </table>
+      <p class="bayes-reference">The 2 log B<sub>10</sub> thresholds are rounded. STAT 6206 Chapter 2, pp. 29–36.</p>
+    </div>
+  </details>
+
+  <details class="bayes-advanced" id="criteria-lab">
+    <summary>Model selection by AIC, BIC and DIC</summary>
+    <div class="bayes-advanced-body">
+      <div class="criteria-specification">
+        <h3 class="criteria-heading">Model specification:</h3>
+        <math class="criteria-equation" display="block" aria-label="y equals the sum from i equals one to p of x i times beta i, plus epsilon, where epsilon is standard Normal">
+          <mi>y</mi><mo>=</mo>
+          <munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>p</mi></munderover>
+          <msub><mi>x</mi><mi>i</mi></msub><msub><mi>β</mi><mi>i</mi></msub><mo>+</mo><mi>ε</mi><mo>,</mo>
+          <mspace width="0.5em"></mspace><mtext>where</mtext><mspace width="0.4em"></mspace>
+          <mi>ε</mi><mo>∼</mo><mi>N</mi><mo>(</mo><mn>0</mn><mo>,</mo><mn>1</mn><mo>)</mo>
+        </math>
+      </div>
+      <math class="criteria-equation" display="block" aria-label="Model zero sums the first p minus one predictors. Model one sums all p predictors. Both include epsilon.">
+        <mrow>
+          <msub><mi>M</mi><mn>0</mn></msub><mo>:</mo><mi>y</mi><mo>=</mo>
+          <munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mrow><mi>p</mi><mo>−</mo><mn>1</mn></mrow></munderover>
+          <msub><mi>x</mi><mi>i</mi></msub><msub><mi>β</mi><mi>i</mi></msub><mo>+</mo><mi>ε</mi>
+        </mrow>
+        <mspace width="1.65em"></mspace>
+        <mrow>
+          <msub><mi>M</mi><mn>1</mn></msub><mo>:</mo><mi>y</mi><mo>=</mo>
+          <munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>p</mi></munderover>
+          <msub><mi>x</mi><mi>i</mi></msub><msub><mi>β</mi><mi>i</mi></msub><mo>+</mo><mi>ε</mi>
+        </mrow>
+      </math>
+      <p>The true coefficients β<sub>1</sub> through β<sub>p−1</sub> are all 0.5. The strength slider controls β<sub>p</sub>.</p>
+      <div class="criteria-controls">
+        <label class="bayes-range">
+          <span>Number of predictors <output id="criteria-p-value" for="criteria-p">3</output></span>
+          <input id="criteria-p" type="range" min="1" max="10" value="3">
+        </label>
+        <label class="bayes-range">
+          <span>Sample size n <output id="criteria-n-value" for="criteria-n">30</output></span>
+          <input id="criteria-n" type="range" min="5" max="100" value="30">
+        </label>
+        <label class="bayes-range">
+          <span>Strength of the extra variable <output id="criteria-strength-value" for="criteria-strength">0</output></span>
+          <input id="criteria-strength" type="range" min="0" max="2" step="0.1" value="0">
+        </label>
+        <label class="bayes-range">
+          <span>Prior SD (DIC) <output id="criteria-sd-value" for="criteria-sd">1</output></span>
+          <input id="criteria-sd" type="range" min="0.1" max="5" step="0.1" value="1">
+        </label>
+      </div>
+      <div class="bayes-pair criteria-charts">
+        <figure class="bayes-figure">
+          <h3>Scores by model</h3>
+          <div id="criteria-plot"></div>
+        </figure>
+        <figure class="bayes-figure">
+          <h3>Penalty strength for M₁</h3>
+          <div id="criteria-penalties"></div>
+        </figure>
+      </div>
+      <table class="bayes-table criteria-results">
+        <thead><tr><th scope="col">Model</th><th scope="col">Predictors</th><th scope="col">AIC</th><th scope="col">BIC</th><th scope="col">DIC</th><th scope="col">p<sub>D</sub></th></tr></thead>
+        <tbody id="criteria-table"></tbody>
+      </table>
+      <p class="bayes-feedback" id="criteria-insight" role="status"></p>
+      <p class="bayes-reference" id="criteria-rank-note" hidden>AIC and BIC scores require a full-rank fit in this exercise. A dash marks models with more predictors than observations. The penalty chart still shows all three penalty formulas.</p>
+    </div>
+  </details>
+
+  <details class="bayes-advanced" id="lasso-lab">
+    <summary>Explore Bayesian Lasso</summary>
+    <div class="bayes-advanced-body">
+      <h3 class="lasso-spec-heading">Model specification</h3>
+      <p>We observe an estimate β̂ = (1.6, 2.4) with known standard error 1 for each coefficient and the following sampling model.</p>
+      <math class="lasso-model" display="block" aria-label="Beta hat given beta is bivariate Normal with mean beta and covariance matrix with diagonal 1 and off-diagonal 0.6">
+        <mover accent="true"><mi>β</mi><mo>^</mo></mover><mo>|</mo><mi>β</mi><mo>∼</mo>
+        <msub><mi>N</mi><mn>2</mn></msub><mo>(</mo><mi>β</mi><mo>,</mo><mi>Σ</mi><mo>)</mo><mo>,</mo><mspace width="1em"></mspace>
+        <mi>Σ</mi><mo>=</mo><mo>(</mo>
+        <mtable><mtr><mtd><mn>1</mn></mtd><mtd><mn>0.6</mn></mtd></mtr><mtr><mtd><mn>0.6</mn></mtd><mtd><mn>1</mn></mtd></mtr></mtable>
+        <mo>)</mo>
+      </math>
+      <div class="bayes-pair lasso-priors">
+        <p><strong>Bayesian Lasso</strong><br>
+          Prior: <math><msub><mi>β</mi><mi>j</mi></msub><mover accent="false"><mo>∼</mo><mtext>iid</mtext></mover><mtext>Laplace</mtext><mo>(</mo><mn>0</mn><mo>,</mo><mn>1</mn><mo>/</mo><mi>λ</mi><mo>)</mo></math>
+        </p>
+        <p><strong>Ridge</strong><br>
+          Prior: <math><msub><mi>β</mi><mi>j</mi></msub><mover accent="false"><mo>∼</mo><mtext>iid</mtext></mover><mi>N</mi><mo>(</mo><mn>0</mn><mo>,</mo><mn>1</mn><mo>/</mo><mi>λ</mi><mo>)</mo></math>
+        </p>
+      </div>
+      <label class="bayes-range bayes-short-range">
+        <span>Shrinkage strength λ <output id="lasso-rate-value" for="lasso-rate">1.25</output></span>
+        <input id="lasso-rate" type="range" min="0.25" max="4" step="0.05" value="1.25">
+      </label>
+      <p>When λ = 1, β₁ = 0. When λ = 2.25, (β₁, β₂) = (0, 0).</p>
+      <ul class="bayes-legend lasso-legend" aria-label="Chart key">
+        <li class="inference-key-hpd">Relative joint prior density</li>
+        <li class="bayes-key-prior">Likelihood contours</li>
+        <li class="lasso-key-boundary">Constraint boundary</li>
+        <li class="lasso-key-mode">Posterior mode</li>
+      </ul>
+      <div class="bayes-pair lasso-charts">
+        <figure class="bayes-figure">
+          <h3>Bayesian Lasso (Laplace prior)</h3>
+          <div id="lasso-plot"></div>
+          <figcaption id="lasso-summary" role="status"></figcaption>
+        </figure>
+        <figure class="bayes-figure">
+          <h3>Ridge (Normal prior)</h3>
+          <div id="ridge-plot"></div>
+          <figcaption id="ridge-summary" role="status"></figcaption>
+        </figure>
+      </div>
+      <p class="bayes-reference">Darker shading shows higher prior density. The hollow dot marks β̂. The highlighted likelihood contour touches the constraint at the posterior mode. Each constraint radius is determined by that mode. STAT 6206 Chapter 2, pp. 37–43. <a href="https://doi.org/10.1198/016214508000000337">Park and Casella (2008)</a>.</p>
+    </div>
+  </details>
+</article>
+<script src="assets/vendor/d3-7.9.0.min.js" defer></script>
+<script src="assets/vendor/plot-0.6.19.min.js" defer></script>
+<script src="assets/ch02.mjs?v=704fc235ecc0" type="module"></script>
+</main><footer><div class="wrap footer-inner"><div><a class="footer-brand" href="../index.html">Ruifeng LI<span>✳</span></a><p>Statistics, ideas, and the work in between.</p></div><div class="footer-links"><a href="../index.html#honors">Honors and Awards</a><a href="../research.html">Research</a><a href="../teaching.html">Teaching</a><a href="../ai-development.html">AI Development</a><a href="../market-research.html">Market Research</a><a href="../writing.html">Writing</a><a href="https://www.linkedin.com/in/ruifeng-li-78461b2b7/">LinkedIn ↗</a></div><p class="copyright">© 2026 Ruifeng LI</p></div></footer></body></html>
