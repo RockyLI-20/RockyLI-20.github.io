@@ -1,5 +1,5 @@
-import {normalDensity} from './bayes-math.mjs?v=d6303284914f';
-import {acceptanceTrend, autocorrelation, effectiveSamples, mhMove, targets} from './mcmc-math.mjs?v=d6303284914f';
+import {normalDensity} from './bayes-math.mjs?v=6325cd8a0930';
+import {acceptanceTrend, autocorrelation, effectiveSamples, mhMove, targets, tracePoints} from './mcmc-math.mjs?v=6325cd8a0930';
 
 const {Plot, d3} = window;
 const byId = id => document.getElementById(id);
@@ -7,6 +7,10 @@ const colors = ['#245d5b', '#a34739', '#65517b', '#30678a'];
 const dashes = [null, '5 3', '2 3', '7 3 2 3'];
 const purple = '#65517b';
 const recentStates = 1000;
+const liveStepMs = 36;
+const targetRefreshMs = 135;
+const diagnosticRefreshMs = 280;
+const traceFrame = {marginLeft: 48, marginRight: 12, marginTop: 24, marginBottom: 42};
 const kernel = normalDensity(0, 0.3);
 const percent = x => `${(100 * x).toFixed(1)}%`;
 const grid = ([lo, hi], n = 110) => d3.range(n + 1).map(i => lo + (hi - lo) * i / n);
@@ -26,20 +30,23 @@ export function setupMcmcLab(draw) {
     {key: 'b', label: 'Setting B', sd: 2}
   ];
   const activeGroups = () => comparison.checked ? groups.slice(1) : groups.slice(0, 1);
-  let timer = null;
+  let liveRequest = 0;
+  let lastStep;
+  let lastTarget;
+  let lastDiagnostic;
   let target;
   let heatmap;
   let marginals;
 
   function pause() {
-    clearInterval(timer);
-    timer = null;
+    cancelAnimationFrame(liveRequest);
+    liveRequest = 0;
     byId('mh-live').textContent = 'Run live';
   }
 
-  function renderActive() {
+  function renderActive(update = 'all') {
     if (!lab.open) return;
-    for (const group of activeGroups()) render(group);
+    for (const group of activeGroups()) render(group, update);
   }
 
   function refreshPanels() {
@@ -50,6 +57,7 @@ export function setupMcmcLab(draw) {
 
   function reset(group) {
     group.step = 0;
+    group.trace = null;
     group.chains = group.starts.map((state, i) => {
       const random = d3.randomLcg(6209 + i);
       return {
@@ -68,18 +76,23 @@ export function setupMcmcLab(draw) {
     if (!joint) coordinate.value = '0';
     byId('mh-coordinate-label').hidden = !joint;
     marginals = target.marginals.map((density, i) => grid(target.domains[i]).map(x => ({x, y: density(x)})));
-    heatmap = [];
     if (joint) {
-      const [xs, ys] = target.domains.map(domain => grid(domain, 32));
-      heatmap = xs.slice(1).flatMap((x2, i) => ys.slice(1).map((y2, j) => {
-        const x1 = xs[i];
-        const y1 = ys[j];
-        const p = Math.exp(target.logDensity([(x1 + x2) / 2, (y1 + y2) / 2]));
-        return {x1, x2, y1, y2, p};
+      const size = 32;
+      const [xs, ys] = target.domains.map(domain => grid(domain, size));
+      const tiles = xs.slice(1).flatMap((x2, i) => ys.slice(1).map((y2, j) => {
+        const p = Math.exp(target.logDensity([(xs[i] + x2) / 2, (ys[j] + y2) / 2]));
+        return {i, j, p};
       }));
-      const peak = d3.max(heatmap, d => d.p);
+      const peak = d3.max(tiles, d => d.p);
       const shade = d3.interpolateRgb('#faf9f5', '#668879');
-      for (const tile of heatmap) tile.color = shade(Math.sqrt(tile.p / peak));
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = size;
+      const context = canvas.getContext('2d');
+      for (const {i, j, p} of tiles) {
+        context.fillStyle = shade(Math.sqrt(p / peak));
+        context.fillRect(i, size - 1 - j, 1, 1);
+      }
+      heatmap = canvas.toDataURL();
     }
     for (const group of groups) {
       group.starts = target.starts.slice(0, Number(byId('mh-chain-count').value)).map(state => [...state]);
@@ -92,7 +105,7 @@ export function setupMcmcLab(draw) {
     refreshPanels();
   }
 
-  function advance(steps) {
+  function advance(steps, update) {
     for (const group of activeGroups()) {
       for (let i = 0; i < steps; i += 1) {
         group.step += 1;
@@ -105,7 +118,24 @@ export function setupMcmcLab(draw) {
         }
       }
     }
-    renderActive();
+    renderActive(update);
+  }
+
+  function runLive(now) {
+    liveRequest = requestAnimationFrame(runLive);
+    const elapsed = now - lastStep;
+    const steps = Math.min(5, Math.floor(elapsed / liveStepMs));
+    if (steps < 1) return;
+    lastStep = now - elapsed % liveStepMs;
+    let update = 'trace';
+    if (now - lastDiagnostic >= diagnosticRefreshMs) {
+      lastDiagnostic = lastTarget = now;
+      update = 'all';
+    } else if (now - lastTarget >= targetRefreshMs) {
+      lastTarget = now;
+      update = 'target';
+    }
+    advance(steps, update);
   }
 
   function updateStartFields(group) {
@@ -121,7 +151,7 @@ export function setupMcmcLab(draw) {
     render(group);
   }
 
-  function targetMarks(group, states, focus) {
+  function targetMarks(group, states, focus, width, height) {
     const joint = target.domains.length === 2;
     const move = group.chains[focus].last;
     const current = states[focus].state;
@@ -135,7 +165,10 @@ export function setupMcmcLab(draw) {
       return {
         x: {domain: xDomain, label: 'X'}, y: {domain: yDomain, label: 'Y', zero: false, grid: false},
         marks: [
-          Plot.rect(heatmap, {x1: 'x1', x2: 'x2', y1: 'y1', y2: 'y2', fill: 'color'}),
+          Plot.image([[d3.mean(xDomain), d3.mean(yDomain)]], {
+            x: d => d[0], y: d => d[1], src: () => heatmap,
+            width: width - 60, height: height - 66, preserveAspectRatio: 'none', imageRendering: 'pixelated'
+          }),
           Plot.areaY(contour(2 * group.sd), {x: 'x', y1: 'lo', y2: 'hi', ...shade}),
           Plot.areaY(contour(group.sd), {x: 'x', y1: 'lo', y2: 'hi', ...shade}),
           Plot.link(move ? [move] : [], {
@@ -166,11 +199,72 @@ export function setupMcmcLab(draw) {
     };
   }
 
-  function render(group) {
+  function renderTrace(group, axis, stateLabel, states) {
+    const {parts, chains, step} = group;
+    const width = parts.trace.clientWidth;
+    const domain = target.domains[axis];
+    if (!group.trace || group.trace.width !== width || group.trace.domain !== domain) {
+      const height = 205;
+      const {marginLeft: left, marginRight, marginTop: top, marginBottom} = traceFrame;
+      const right = width - marginRight;
+      const bottom = height - marginBottom;
+      const svg = draw(parts.trace.id, 'Chain traces from the start of the run', {
+        width, ...traceFrame, x: {axis: null}, y: {domain, label: stateLabel, zero: false}, marks: []
+      }, height);
+      const chart = d3.select(svg);
+      const clip = `mh-trace-clip-${group.key}`;
+      chart.append('defs').append('clipPath').attr('id', clip)
+        .append('rect').attr('x', left).attr('y', top).attr('width', right - left).attr('height', bottom - top);
+      const xAxis = chart.append('g').attr('transform', `translate(0,${bottom})`);
+      chart.append('text').attr('x', right).attr('y', height - 9).attr('text-anchor', 'end')
+        .attr('fill', 'currentColor').text('Iteration →');
+      const marks = chart.append('g').attr('clip-path', `url(#${clip})`);
+      const paths = chains.map((_, i) => marks.append('path').attr('fill', 'none')
+        .attr('stroke', colors[i]).attr('stroke-width', 1.8).attr('stroke-dasharray', dashes[i]));
+      const dots = states.map(({color}) => marks.append('circle').attr('fill', color).attr('r', 3));
+      const x = d3.scaleLinear([0, 1], [left, right]);
+      const y = svg.scale('y').apply;
+      group.trace = {width, domain, x, y, xAxis, paths, dots, buckets: Math.max(1, Math.floor((right - left) / 2))};
+    }
+    const trace = group.trace;
+    trace.x.domain([0, Math.max(1, step)]);
+    trace.xAxis.call(d3.axisBottom(trace.x).ticks(width < 370 ? 4 : 7).tickFormat(integerTick).tickSizeOuter(0));
+    const path = d3.line().x(d => trace.x(d.step)).y(d => trace.y(d.state[axis]));
+    chains.forEach((chain, i) => {
+      trace.paths[i].attr('d', path(tracePoints(chain.draws, axis, trace.buckets)));
+      trace.dots[i].attr('cx', trace.x(step)).attr('cy', trace.y(states[i].state[axis]));
+    });
+  }
+
+  function render(group, update = 'all') {
     const {parts, chains, step} = group;
     const axis = Number(coordinate.value);
     const joint = target.domains.length === 2;
+    const stateLabel = joint ? (axis ? 'Y' : 'X') : 'State';
+    const states = chains.map((chain, i) => ({state: chain.draws.at(-1).state, color: colors[i]}));
+    renderTrace(group, axis, stateLabel, states);
+    if (update === 'trace') return;
+
     const focus = Number(parts['start-chain'].value);
+    const chart = (name, label, options, height = 205) => draw(parts[name].id, label, options, height);
+    const move = chains[focus].last;
+    parts['target-key'].textContent = joint
+      ? 'Joint density in green. Purple shading marks the 1 and 2 SD proposal contours for the selected chain. Click to set its start.'
+      : 'Gray line is the target. Purple shading is the next proposal density for the selected chain. Click to set its start.';
+    parts.decision.textContent = move
+      ? `Chain ${focus + 1} · ${stateText(move.current)} → ${stateText(move.proposal)} · ${move.accepted ? 'Accepted' : 'Rejected'} (${percent(move.chance)})`
+      : 'Step once to see the first proposal.';
+    const targetWidth = joint ? Math.min(parts.target.clientWidth, 420) : parts.target.clientWidth;
+    let targetHeight = 224;
+    if (joint) {
+      const [xSpan, ySpan] = target.domains.map(([lo, hi]) => hi - lo);
+      targetHeight = 66 + (targetWidth - 60) * ySpan / xSpan;
+    }
+    group.targetPlot = chart('target', 'Target and proposal, with current states and last proposed point', {
+      ...targetMarks(group, states, focus, targetWidth, targetHeight), width: targetWidth
+    }, targetHeight);
+    if (update === 'target') return;
+
     const samples = chains.map(chain => chain.draws.slice(Math.max(1, chain.draws.length - recentStates)));
     const acfs = samples.map(draws => autocorrelation(draws.map(draw => draw.state[axis])));
     const rates = chains.map(chain => step ? chain.accepted / step : 0);
@@ -183,7 +277,6 @@ export function setupMcmcLab(draw) {
       x, y, stroke: colors[i], strokeDasharray: dashes[i], strokeWidth: 1.8, clip: true
     });
     const lines = (data, x, y) => chains.map((_, i) => line(data.filter(d => d.chain === i), x, y, i));
-    const chart = (name, label, options, height = 205) => draw(parts[name].id, label, options, height);
 
     parts['sd-value'].textContent = group.sd.toFixed(1);
     parts['ess-title'].textContent = joint ? `ESS (${axis ? 'Y' : 'X'})` : 'ESS';
@@ -197,40 +290,13 @@ export function setupMcmcLab(draw) {
     const slow = step >= 20 && acfs.some(acf => acf[1] >= 0.8);
     const stuck = distribution.value === 'mixture' && step >= 50 && chains.some(chain => chain.sides !== 3);
     parts.hint.dataset.state = rejection ? 'rejection' : slow || stuck ? 'slow' : 'ready';
-    parts.hint.textContent = `${step.toLocaleString('en')} steps per chain. ${[
+    parts.hint.textContent = `${step.toLocaleString('en')} ${step === 1 ? 'step' : 'steps'} per chain. ${[
       step < 20 ? 'Run at least 20 steps for the first ESS and mixing hints.' : '',
       rejection ? 'Frequent recent rejections (acceptance below 20%). Try a smaller proposal SD.' : '',
       slow ? 'High lag-1 autocorrelation (0.8 or above). If most moves are accepted, try a larger proposal SD.' : '',
       stuck ? 'At least one chain has visited only one side of the two-peak target.' : '',
       step >= 20 && !rejection && !slow && !stuck ? 'Compare the ACF decay and how much the traces overlap.' : ''
     ].filter(Boolean).join(' ')}`;
-
-    const states = chains.map((chain, i) => ({state: chain.draws.at(-1).state, color: colors[i]}));
-    const move = chains[focus].last;
-    parts['target-key'].textContent = joint
-      ? 'Joint density in green. Purple shading marks the 1 and 2 SD proposal contours for the selected chain. Click to set its start.'
-      : 'Gray line is the target. Purple shading is the next proposal density for the selected chain. Click to set its start.';
-    parts.decision.textContent = move
-      ? `Chain ${focus + 1} · ${stateText(move.current)} → ${stateText(move.proposal)} · ${move.accepted ? 'Accepted' : 'Rejected'} (${percent(move.chance)})`
-      : 'Step once to see the first proposal.';
-    const targetChart = targetMarks(group, states, focus);
-    let targetHeight = 224;
-    if (joint) {
-      const width = Math.min(parts.target.clientWidth, 420);
-      const [xSpan, ySpan] = target.domains.map(([lo, hi]) => hi - lo);
-      targetChart.width = width;
-      targetHeight = 66 + (width - 60) * ySpan / xSpan;
-    }
-    group.targetPlot = chart('target', 'Target and proposal, with current states and last proposed point', targetChart, targetHeight);
-
-    const stateLabel = joint ? (axis ? 'Y' : 'X') : 'State';
-    chart('trace', 'Chain traces from the start of the run', {
-      x: {domain: [0, Math.max(1, step)], tickFormat: integerTick, label: 'Iteration'},
-      y: {domain: target.domains[axis], label: stateLabel, zero: false},
-      marks: [...chains.map((chain, i) => line(chain.draws, 'step', d => d.state[axis], i)), Plot.dot(states, {
-        x: () => step, y: d => d.state[axis], fill: 'color', r: 3, clip: true
-      })]
-    });
 
     const acfPoints = tagged((_, i) => acfs[i].map((y, lag) => ({lag, y})));
     chart('acf', `Autocorrelation by chain for ${stateLabel}`, {
@@ -291,7 +357,7 @@ export function setupMcmcLab(draw) {
 
   distribution.addEventListener('change', setTarget);
   byId('mh-chain-count').addEventListener('change', setTarget);
-  coordinate.addEventListener('change', renderActive);
+  coordinate.addEventListener('change', () => renderActive());
   comparison.addEventListener('change', () => {
     pause();
     refreshPanels();
@@ -305,13 +371,15 @@ export function setupMcmcLab(draw) {
     advance(200);
   });
   byId('mh-live').addEventListener('click', () => {
-    if (timer) {
+    if (liveRequest) {
       pause();
+      renderActive();
       return;
     }
     byId('mh-live').textContent = 'Pause';
     advance(1);
-    timer = setInterval(() => advance(5), 180);
+    lastStep = lastTarget = lastDiagnostic = performance.now();
+    liveRequest = requestAnimationFrame(runLive);
   });
   byId('mh-reset').addEventListener('click', () => {
     pause();
@@ -322,6 +390,6 @@ export function setupMcmcLab(draw) {
     if (!lab.open) pause();
     renderActive();
   });
-  window.addEventListener('resize', renderActive);
+  window.addEventListener('resize', () => renderActive());
   setTarget();
 }

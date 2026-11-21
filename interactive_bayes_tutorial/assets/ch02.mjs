@@ -1,9 +1,9 @@
-import {betaDensity, betaUpdate, coinExample, countHeads, normalDensity, probability} from './bayes-math.mjs?v=d6303284914f';
+import {betaDensity, betaUpdate, coinExample, countHeads, normalDensity, probability, relativeLikelihood} from './bayes-math.mjs?v=6325cd8a0930';
 import {
   betaBinomial, discretize, highestDensity, logBayesFactor,
   modelCriteria, quantile, regressionPosteriorSampler, shrinkageModes
-} from './inference-math.mjs?v=d6303284914f';
-import {setupMcmcLab} from './mcmc-lab.mjs?v=d6303284914f';
+} from './inference-math.mjs?v=6325cd8a0930';
+import {setupMcmcLab} from './mcmc-lab.mjs?v=6325cd8a0930';
 
 const {Plot, d3} = window;
 const byId = id => document.getElementById(id);
@@ -86,6 +86,11 @@ function renderInterval() {
   const regions = flat ? [[quantile(cells, 0.025), quantile(cells, 0.975)]] : highestDensity(cells, 0.95);
   const median = quantile(cells, 0.5);
   const densityData = cells.filter(({x}) => x >= visible[0] && x <= visible[1]).map(({x, height}) => ({x, y: height}));
+  const densityLimit = 1.07 * d3.max([...priorData, ...densityData], d => d.y);
+  const [heads, tails] = counts(tosses);
+  const likelihood = relativeLikelihood(heads, tails);
+  const mode = heads / Math.max(1, tosses.length);
+  const evidence = [...range(0, 1), mode].sort((a, b) => a - b).map(x => ({x, y: densityLimit * likelihood(x)}));
   const shade = regions.flatMap(([lo, hi], region) => {
     const left = Math.max(lo, visible[0]);
     const right = Math.min(hi, visible[1]);
@@ -95,13 +100,20 @@ function renderInterval() {
   const interval = ` 95% HPD ${regions.map(bounds).join(' ∪ ')}.`;
   const clipped = priorA < 1 || priorB < 1 ? ' The plot trims 0.01 near each diverging endpoint.' : '';
   write('interval-summary', `Beta(${a}, ${b}) · Mean ${format(mean)}.${interval}${clipped}`);
-  draw('interval-plot', 'Prior and posterior densities with mean, median, and the 95% highest-density region', {
+  draw('interval-plot', 'Prior and posterior densities with a 95% highest-density region and relative likelihood on the right axis', {
+    marginRight: 38,
     x: {domain: [0, 1], label: 'Chance of heads, θ'},
-    y: {label: 'Density'},
+    y: {domain: [0, densityLimit]},
     marks: [
       Plot.areaY(shade, {x: 'x', y: 'y', z: 'region', fill: teal, fillOpacity: 0.27}),
       densityLine(densityData),
       densityLine(priorData, rust, '6 4'),
+      densityLine(evidence, purple, '2 4'),
+      Plot.axisY({anchor: 'left', ticks: 4, label: 'Density'}),
+      Plot.axisY({
+        anchor: 'right', color: purple, ticks: [0, densityLimit / 2, densityLimit],
+        tickFormat: y => (y / densityLimit).toFixed(1), label: null
+      }),
       Plot.dot([{x: mean, y: density(mean)}], {x: 'x', y: 'y', fill: teal, r: 4, title: () => 'Mean'}),
       Plot.dot([{x: median, y: density(median)}], {x: 'x', y: 'y', stroke: rust, fill: 'white', r: 4, symbol: 'diamond', title: () => 'Median'})
     ]
@@ -115,6 +127,7 @@ function setRange(from, to) {
 
 function renderPredictive() {
   const future = value('future');
+  const rounds = value('future-rounds');
   const {a, b, mean} = posterior(tosses);
   for (const id of ['range-from', 'range-to']) byId(id).max = future;
   const from = value('range-from');
@@ -125,12 +138,15 @@ function renderPredictive() {
   const frequencies = Array(future + 1).fill(0);
   for (const k of predictiveDraws) frequencies[k] += 1 / predictiveDraws.length;
   write('future-value', future);
+  write('future-rounds-value', rounds);
+  write('draw-prediction', `Simulate ${rounds} future rounds`);
+  write('round-size', `(${future} ${future === 1 ? 'toss' : 'tosses'} per round)`);
   write('range-from-value', from);
   write('range-to-value', to);
   write('predictive-summary', `P(${from} ≤ heads ≤ ${to}) = ${percent(mass)}.`);
   byId('predictive-simulated').hidden = !predictiveDraws.length;
   if (predictiveDraws.length) {
-    write('predictive-simulated', `Simulated ${percent(predictiveDraws.filter(selected).length / predictiveDraws.length)} of ${predictiveDraws.length} draws.`);
+    write('predictive-simulated', `Simulated ${percent(predictiveDraws.filter(selected).length / predictiveDraws.length)} of ${predictiveDraws.length} rounds.`);
   }
   write('next-toss', percent(mean));
   const [heads, tails] = counts(tosses);
@@ -140,7 +156,7 @@ function renderPredictive() {
   write('observed-tails-value', tails);
   write('observed-total', `n = ${tosses.length}`);
   const chart = draw('predictive-plot', 'Exact predictive probabilities with highlighted range and simulated frequencies', {
-    x: {domain: [-0.5, future + 0.5], label: 'Heads in the new batch', tickFormat: k => Number.isInteger(k) ? k : ''},
+    x: {domain: [-0.5, future + 0.5], label: 'Heads per round', tickFormat: k => Number.isInteger(k) ? k : ''},
     y: {label: 'Probability'},
     marks: [
       Plot.rectY(bins(exact), {x1: d => d.k - 0.39, x2: d => d.k + 0.39, y: 'p', fill: d => selected(d.k) ? teal : '#aabeb3'}),
@@ -162,7 +178,7 @@ function renderPredictive() {
 function samplePrediction() {
   const {a, b} = posterior(tosses);
   const cumulative = d3.cumsum(betaBinomial(value('future'), a, b));
-  predictiveDraws = Array.from({length: 200}, () => d3.bisectLeft(cumulative, predictionRandom()));
+  predictiveDraws = Array.from({length: value('future-rounds')}, () => d3.bisectLeft(cumulative, predictionRandom()));
   renderPredictive();
 }
 
@@ -372,10 +388,12 @@ for (const [id, render] of [
 ]) byId(id).addEventListener('input', render);
 
 byId('draw-prediction').addEventListener('click', samplePrediction);
-byId('future').addEventListener('input', () => {
-  predictiveDraws = [];
-  renderPredictive();
-});
+for (const id of ['future', 'future-rounds']) {
+  byId(id).addEventListener('input', () => {
+    predictiveDraws = [];
+    renderPredictive();
+  });
+}
 for (const id of ['range-from', 'range-to']) byId(id).addEventListener('input', () => {
   const from = value('range-from');
   const to = value('range-to');
@@ -398,6 +416,7 @@ byId('reset-inference').addEventListener('click', () => {
   byId('import-limit').hidden = true;
   byId('prediction-prior').value = 'uniform';
   byId('future').value = 10;
+  byId('future-rounds').value = 200;
   for (const id of ['range-from', 'range-to']) byId(id).max = 10;
   setRange(7, 10);
   predictiveDraws = [];

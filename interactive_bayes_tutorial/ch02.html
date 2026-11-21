@@ -1,8 +1,8 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Ruifeng LI — statistics research, AI development, teaching, and market research."><title>Chapter 2. Bayesian Inference | Ruifeng LI</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&display=swap" rel="stylesheet"><link rel="stylesheet" href="../style.css"><script src="../app.js" defer></script><link rel="stylesheet" href="assets/tutorial.css?v=d6303284914f"></head><body><a class="skip" href="#main">Skip to content</a><header class="header wrap"><a class="brand" href="../index.html" aria-label="Ruifeng LI, home">Ruifeng LI</a><button class="menu-toggle" aria-expanded="false" aria-controls="nav">Menu <span>☰</span></button><nav id="nav" aria-label="Main navigation"><a href="../research.html">Research</a><a href="../teaching.html">Teaching</a><a href="../ai-development.html">AI Development</a><a href="../market-research.html">Market Research</a><a href="../writing.html">Writing</a></nav></header><main id="main"><article class="wrap bayes-page bayes-inference">
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Ruifeng LI — statistics research, AI development, teaching, and market research."><title>Chapter 2. Bayesian Inference | Ruifeng LI</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&display=swap" rel="stylesheet"><link rel="stylesheet" href="../style.css"><script src="../app.js" defer></script><link rel="stylesheet" href="assets/tutorial.css?v=6325cd8a0930"></head><body><a class="skip" href="#main">Skip to content</a><header class="header wrap"><a class="brand" href="../index.html" aria-label="Ruifeng LI, home">Ruifeng LI</a><button class="menu-toggle" aria-expanded="false" aria-controls="nav">Menu <span>☰</span></button><nav id="nav" aria-label="Main navigation"><a href="../research.html">Research</a><a href="../teaching.html">Teaching</a><a href="../ai-development.html">AI Development</a><a href="../market-research.html">Market Research</a><a href="../writing.html">Writing</a></nav></header><main id="main"><article class="wrap bayes-page bayes-inference">
   <a class="text-link" href="index.html">Interactive Bayesian Tool Box</a>
   <p class="bayes-context">STAT 6206 · Chapter 2</p>
   <h1>What will the next tosses look like?</h1>
-  <p class="bayes-intro">Predict a new batch of coin tosses, then check how well two regression models reproduce held-out data.</p>
+  <p class="bayes-intro">Predict a new round of coin tosses, then check how well two regression models reproduce held-out data.</p>
   <noscript><p>Enable JavaScript to run the experiments.</p></noscript>
 
   <section class="bayes-workbench" aria-labelledby="prediction-title">
@@ -35,7 +35,12 @@
         <span>Future tosses <output id="future-value" for="future">10</output></span>
         <input id="future" type="range" min="1" max="60" value="10">
       </label>
-      <button type="button" class="bayes-action" id="draw-prediction">Simulate 200 future batches</button>
+      <label class="bayes-range">
+        <span>Simulation rounds <output id="future-rounds-value" for="future-rounds">200</output></span>
+        <input id="future-rounds" type="range" min="10" max="500" value="200">
+      </label>
+      <button type="button" class="bayes-action" id="draw-prediction">Simulate 200 future rounds</button>
+      <p class="inference-round-size" id="round-size">(10 tosses per round)</p>
       <div class="bayes-utility">
         <button type="button" class="bayes-quiet" id="reset-inference">Reset example</button>
       </div>
@@ -48,6 +53,7 @@
             <li class="bayes-key-prior">Prior density</li>
             <li class="bayes-key-posterior">Posterior density</li>
             <li class="inference-key-hpd">95% HPD</li>
+            <li class="bayes-key-likelihood">Relative likelihood (right axis)</li>
           </ul>
           <div id="interval-plot"></div>
           <figcaption id="interval-summary"></figcaption>
@@ -155,7 +161,7 @@
       <details class="bayes-explanation mh-notes">
         <summary>How to read the diagnostics</summary>
         <p>A symmetric Normal proposal gives acceptance probability min(1, target(proposal) / target(current)). A rejected step repeats the current state. Small steps can give high acceptance and highly correlated draws. Large steps can trigger frequent rejections.</p>
-        <p>ACF measures dependence at each lag. ESS here is a per-chain estimate using the initial positive pairs of autocorrelations through lag 40, on up to 1,000 states. It appears after 20 steps. Read it alongside the traces and whether each chain explores both sides of a two-peak target. The live density estimates use each chain’s latest 200 draws with a fixed Gaussian kernel bandwidth of 0.3.</p>
+        <p>ACF measures dependence at each lag. ESS here is a per-chain estimate using the initial positive pairs of autocorrelations through lag 40, on up to 1,000 states. It appears after 20 steps. Read it alongside the traces and whether each chain explores both sides of a two-peak target. Long traces keep the first and last states and show the highest and lowest values in each group of nearby iterations. The live density estimates use each chain’s latest 200 draws with a fixed Gaussian kernel bandwidth of 0.3.</p>
         <p>Changing proposal SD during a run layers together results from two proposal widths. Reset chains to compare settings from the same starting states. STAT 6206 Chapter 2, pp. 7–11. <a href="https://mc-stan.org/docs/reference-manual/analysis.html#effective-sample-size.section">Stan reference on effective sample size</a>.</p>
       </details>
     </div>
@@ -428,5 +434,5 @@
 </article>
 <script src="assets/vendor/d3-7.9.0.min.js" defer></script>
 <script src="assets/vendor/plot-0.6.19.min.js" defer></script>
-<script src="assets/ch02.mjs?v=d6303284914f" type="module"></script>
+<script src="assets/ch02.mjs?v=6325cd8a0930" type="module"></script>
 </main><footer><div class="wrap footer-inner"><div><a class="footer-brand" href="../index.html">Ruifeng LI<span>✳</span></a><p>Statistics, ideas, and the work in between.</p></div><div class="footer-links"><a href="../index.html#honors">Honors and Awards</a><a href="../research.html">Research</a><a href="../teaching.html">Teaching</a><a href="../ai-development.html">AI Development</a><a href="../market-research.html">Market Research</a><a href="../writing.html">Writing</a><a href="https://www.linkedin.com/in/ruifeng-li-78461b2b7/">LinkedIn ↗</a></div><p class="copyright">© 2026 Ruifeng LI</p></div></footer></body></html>

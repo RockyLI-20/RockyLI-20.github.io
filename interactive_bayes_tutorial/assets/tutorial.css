@@ -23,6 +23,7 @@
 .inference-next-toss { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .15rem .6rem; margin: .65rem 0 0; padding: .45rem .65rem; background: #e8f0ea; border-left: 3px solid var(--accent); color: var(--accent); font-weight: 700; }
 .inference-next-toss output { font-size: 1.48rem; line-height: 1.2; }
 #predictive-simulated { color: var(--evidence); }
+.inference-round-size { color: var(--muted); font-size: .9rem; margin: .25rem 0 0; }
 .inference-chart .bayes-legend { margin-top: .45rem; }
 .bayes-legend .inference-key-hpd::before { height: .6em; border: 0; background: #c4d3cb; }
 .inference-endpoints { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: .65rem; padding-top: .2rem; border-top: 1px solid var(--rule); }
@@ -142,6 +143,7 @@
 .bayes-custom .bayes-legend { margin-top: .35rem; }
 .bayes-page button, .bayes-page select { font: inherit; font-size: .96rem; min-height: 2.65rem; border-radius: .3rem; }
 .bayes-page button { cursor: pointer; }
+.bayes-page button:disabled { opacity: .55; cursor: default; }
 .bayes-page :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .bayes-page select { display: block; background: var(--lab); color: var(--ink); border: 1px solid #7f8e83; padding: .35rem .5rem; margin: .25rem 0; max-width: 100%; }
 .bayes-page button:is(.bayes-action, .bayes-secondary) { padding: .32rem .72rem; font-weight: 700; border: 1px solid var(--accent); }
@@ -172,13 +174,14 @@
 .bayes-figure svg { display: block; max-width: 100%; height: auto; }
 .bayes-axis-label { display: flex; justify-content: space-between; font-size: .78rem; color: var(--ink); }
 .bayes-axis-label span { color: var(--evidence); }
+.bayes-coin-grid .domain { display: none; }
+.bayes-coin-grid line { stroke: var(--rule); opacity: .55; }
 .bayes-figure figcaption { color: var(--muted); font-size: .94rem; margin-top: .25rem; font-variant-numeric: tabular-nums; }
 .bayes-likelihood-note { border-top: 1px solid var(--rule); margin: .75rem 0 0; padding-top: .65rem; color: var(--muted); font-size: .94rem; }
 .bayes-legend { display: flex; flex-wrap: wrap; gap: .35rem 1rem; padding: 0; margin: 0 0 .55rem; list-style: none; font-size: .88rem; }
 .bayes-legend[hidden] { display: none; }
 .bayes-legend li::before { content: ''; display: inline-block; vertical-align: middle; width: 1.25rem; margin-right: .35rem; border-top: 2px solid var(--posterior); }
 .bayes-legend .bayes-key-prior::before { border-top: 2px dashed var(--prior); }
-.bayes-legend .bayes-key-evidence::before { border-top: 2px dotted #7c887e; }
 .bayes-legend .bayes-key-likelihood::before { border-top: 2px dotted var(--evidence); }
 .bayes-explanation, .bayes-advanced { border-block-start: 1px solid var(--rule); }
 .bayes-page details summary { color: var(--accent); padding: .8rem 0; cursor: pointer; font-weight: 700; }
@@ -194,10 +197,6 @@
 .bayes-table thead th { color: var(--accent); }
 .bayes-objective-charts { margin-top: 1rem; }
 .bayes-objective-charts:has(#kernel-figure[hidden]) { grid-template-columns: minmax(0, 36rem); }
-.bayes-normal-grid { display: grid; grid-template-columns: minmax(190px, .85fr) minmax(0, 2fr); gap: 1.2rem; }
-.bayes-weights { margin-top: .65rem; font-size: .92rem; font-variant-numeric: tabular-nums; }
-.bayes-weights div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .2rem .75rem; }
-.bayes-weights progress { width: 100%; height: .6rem; accent-color: var(--posterior); direction: rtl; }
 .bayes-takeaway { border-left: 3px solid var(--accent); padding-left: .65rem; margin-top: 1rem; }
 .bayes-reference { color: var(--muted); font-size: .9rem; margin: .9rem 0 0; }
 
@@ -215,5 +214,5 @@
   .bayes-custom > :is(.bayes-controls, .bayes-figure) { padding: .75rem .45rem; }
   .bayes-custom > :is(.bayes-controls, .bayes-figure) > h3 { font-size: .92rem; }
   .bayes-custom .bayes-axis-label { font-size: .68rem; }
-  .bayes-pair, .bayes-normal-grid { grid-template-columns: minmax(0, 1fr); }
+  .bayes-pair { grid-template-columns: minmax(0, 1fr); }
 }

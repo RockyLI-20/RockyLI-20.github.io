@@ -1,5 +1,5 @@
-import {normalDensity} from './bayes-math.mjs?v=d6303284914f';
-import {mixtureDensity} from './inference-math.mjs?v=d6303284914f';
+import {normalDensity} from './bayes-math.mjs?v=6325cd8a0930';
+import {mixtureDensity} from './inference-math.mjs?v=6325cd8a0930';
 
 const standard = normalDensity(0, 1);
 const logNormal = (x, mean, sd) => -0.5 * ((x - mean) / sd) ** 2 - Math.log(sd * Math.sqrt(2 * Math.PI));
@@ -83,4 +83,25 @@ export function acceptanceTrend(draws, horizon = 100, window = 20) {
     const part = draws.slice(Math.max(0, end - window), end);
     return {step, rate: part.reduce((sum, draw) => sum + Number(draw.accepted), 0) / part.length};
   });
+}
+
+export function tracePoints(draws, axis, buckets) {
+  const last = draws.length - 1;
+  const stride = Math.ceil((last - 1) / buckets);
+  if (stride <= 2) return draws;
+  const points = [draws[0]];
+  // Keep each bucket's extremes in their original time order.
+  for (let start = 1; start < last; start += stride) {
+    let min = start;
+    let max = start;
+    for (let i = start + 1; i < Math.min(last, start + stride); i += 1) {
+      const state = draws[i].state[axis];
+      if (state < draws[min].state[axis]) min = i;
+      if (state > draws[max].state[axis]) max = i;
+    }
+    points.push(draws[Math.min(min, max)]);
+    if (min !== max) points.push(draws[Math.max(min, max)]);
+  }
+  points.push(draws[last]);
+  return points;
 }
