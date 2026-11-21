@@ -1,6 +1,6 @@
 import {
   betaDensity, betaUpdate, coinExample, countHeads, logOdds, logOddsDensity, normalDensity, normalUpdate, relativeLikelihood
-} from './bayes-math.mjs?v=704fc235ecc0';
+} from './bayes-math.mjs?v=d6303284914f';
 
 const {Plot, d3} = window;
 const byId = id => document.getElementById(id);
@@ -97,8 +97,6 @@ function renderCustom(heads, tails, likelihood = coinLikelihood(heads, tails)) {
   const posterior = betaUpdate(a, b, heads, tails);
   write('custom-alpha-value', a);
   write('custom-beta-value', b);
-  const setup = new URLSearchParams({tosses: tosses.join(''), a, b});
-  byId('continue-prediction').href = `ch02.html?${setup}`;
   drawUpdate('custom-plot', 'Your prior', probAxis, {
     prior: betaPoints(a, b), updated: betaPoints(posterior.a, posterior.b), likelihood, marker: reference(0.5)
   });

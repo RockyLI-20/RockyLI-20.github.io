@@ -1,9 +1,9 @@
-import {betaDensity, betaUpdate, coinExample, countHeads, normalDensity, probability} from './bayes-math.mjs?v=704fc235ecc0';
+import {betaDensity, betaUpdate, coinExample, countHeads, normalDensity, probability} from './bayes-math.mjs?v=d6303284914f';
 import {
-  betaBinomial, discretize, highestDensity, logBayesFactor, mixtureDensity,
+  betaBinomial, discretize, highestDensity, logBayesFactor,
   modelCriteria, quantile, regressionPosteriorSampler, shrinkageModes
-} from './inference-math.mjs?v=704fc235ecc0';
-import {setupMcmcLab} from './mcmc-lab.mjs?v=704fc235ecc0';
+} from './inference-math.mjs?v=d6303284914f';
+import {setupMcmcLab} from './mcmc-lab.mjs?v=d6303284914f';
 
 const {Plot, d3} = window;
 const byId = id => document.getElementById(id);
@@ -77,17 +77,14 @@ let predictionRandom = d3.randomLcg(6207);
 function renderInterval() {
   const {a, b, mean} = posterior(tosses);
   const [priorA, priorB] = prior();
-  const mixture = byId('interval-example').value === 'mixture';
-  const density = mixture ? mixtureDensity : betaDensity(a, b);
-  const domain = mixture ? [-6, 6] : [0, 1];
-  const visible = mixture ? domain : betaWindow(a, b);
-  const priorData = mixture ? curve(() => 1 / 12, domain) : curve(betaDensity(priorA, priorB), betaWindow(priorA, priorB));
-  const coordinate = mixture ? t => 12 * t - 6 : t => Math.sin(Math.PI * t / 2) ** 2;
+  const density = betaDensity(a, b);
+  const visible = betaWindow(a, b);
+  const priorData = curve(betaDensity(priorA, priorB), betaWindow(priorA, priorB));
+  const coordinate = t => Math.sin(Math.PI * t / 2) ** 2;
   const cells = discretize(density, coordinate);
-  const flat = !mixture && a === 1 && b === 1;
+  const flat = a === 1 && b === 1;
   const regions = flat ? [[quantile(cells, 0.025), quantile(cells, 0.975)]] : highestDensity(cells, 0.95);
   const median = quantile(cells, 0.5);
-  const center = mixture ? 0 : mean;
   const densityData = cells.filter(({x}) => x >= visible[0] && x <= visible[1]).map(({x, height}) => ({x, y: height}));
   const shade = regions.flatMap(([lo, hi], region) => {
     const left = Math.max(lo, visible[0]);
@@ -96,16 +93,16 @@ function renderInterval() {
   });
   const bounds = pair => `[${pair.map(format).join(', ')}]`;
   const interval = ` 95% HPD ${regions.map(bounds).join(' ∪ ')}.`;
-  const clipped = !mixture && (priorA < 1 || priorB < 1) ? ' The plot trims 0.01 near each diverging endpoint.' : '';
-  write('interval-summary', `${mixture ? 'Two-peak example' : `Beta(${a}, ${b})`} · Mean ${format(center)}.${interval}${clipped}`);
+  const clipped = priorA < 1 || priorB < 1 ? ' The plot trims 0.01 near each diverging endpoint.' : '';
+  write('interval-summary', `Beta(${a}, ${b}) · Mean ${format(mean)}.${interval}${clipped}`);
   draw('interval-plot', 'Prior and posterior densities with mean, median, and the 95% highest-density region', {
-    x: {domain, label: mixture ? 'Parameter value' : 'Chance of heads, θ'},
+    x: {domain: [0, 1], label: 'Chance of heads, θ'},
     y: {label: 'Density'},
     marks: [
       Plot.areaY(shade, {x: 'x', y: 'y', z: 'region', fill: teal, fillOpacity: 0.27}),
       densityLine(densityData),
       densityLine(priorData, rust, '6 4'),
-      Plot.dot([{x: center, y: density(center)}], {x: 'x', y: 'y', fill: teal, r: 4, title: () => 'Mean'}),
+      Plot.dot([{x: mean, y: density(mean)}], {x: 'x', y: 'y', fill: teal, r: 4, title: () => 'Mean'}),
       Plot.dot([{x: median, y: density(median)}], {x: 'x', y: 'y', stroke: rust, fill: 'white', r: 4, symbol: 'diamond', title: () => 'Median'})
     ]
   });
@@ -368,7 +365,7 @@ const labs = [
 ];
 for (const [id, render] of labs) byId(id).addEventListener('toggle', render);
 for (const [id, render] of [
-  ['interval-example', renderInterval], ['check-view', renderCheck],
+  ['check-view', renderCheck],
   ['factor-heads', renderFactor], ['factor-tails', renderFactor], ['model-prob', renderFactor], ['factor-shape', renderFactor],
   ['criteria-n', renderCriteria], ['criteria-p', renderCriteria],
   ['criteria-strength', renderCriteria], ['criteria-sd', renderCriteria], ['lasso-rate', renderLasso]
@@ -400,7 +397,6 @@ byId('reset-inference').addEventListener('click', () => {
   tosses = coinExample;
   byId('import-limit').hidden = true;
   byId('prediction-prior').value = 'uniform';
-  byId('interval-example').value = 'coin';
   byId('future').value = 10;
   for (const id of ['range-from', 'range-to']) byId(id).max = 10;
   setRange(7, 10);

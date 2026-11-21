@@ -1,5 +1,5 @@
-import {normalDensity} from './bayes-math.mjs?v=704fc235ecc0';
-import {mixtureDensity} from './inference-math.mjs?v=704fc235ecc0';
+import {normalDensity} from './bayes-math.mjs?v=d6303284914f';
+import {mixtureDensity} from './inference-math.mjs?v=d6303284914f';
 
 const standard = normalDensity(0, 1);
 const logNormal = (x, mean, sd) => -0.5 * ((x - mean) / sd) ** 2 - Math.log(sd * Math.sqrt(2 * Math.PI));

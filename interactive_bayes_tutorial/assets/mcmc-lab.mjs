@@ -1,5 +1,5 @@
-import {normalDensity} from './bayes-math.mjs?v=704fc235ecc0';
-import {acceptanceTrend, autocorrelation, effectiveSamples, mhMove, targets} from './mcmc-math.mjs?v=704fc235ecc0';
+import {normalDensity} from './bayes-math.mjs?v=d6303284914f';
+import {acceptanceTrend, autocorrelation, effectiveSamples, mhMove, targets} from './mcmc-math.mjs?v=d6303284914f';
 
 const {Plot, d3} = window;
 const byId = id => document.getElementById(id);

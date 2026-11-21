@@ -15,7 +15,6 @@
 .bayes-chapter-link { max-width: 42rem; border-top: 1px solid var(--rule); padding-top: 1.4rem; }
 .bayes-chapter-link h2 { font-size: clamp(1.4rem, 3vw, 2rem); margin-bottom: .35rem; }
 .bayes-chapter-link a { color: var(--accent); text-underline-offset: .18em; }
-.bayes-next { display: inline-block; margin-top: .65rem; }
 .bayes-inference .bayes-controls select { width: 100%; margin-bottom: .75rem; }
 .bayes-inference .bayes-controls .bayes-utility { align-items: center; }
 .inference-count-heading { display: flex; justify-content: space-between; gap: .5rem; }
@@ -29,13 +28,14 @@
 .inference-endpoints { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: .65rem; padding-top: .2rem; border-top: 1px solid var(--rule); }
 .inference-buttons { margin-bottom: .85rem; }
 #model-check > p { max-width: 74ch; }
-#model-check > .check-specification { display: flex; flex-wrap: wrap; gap: .3rem 1.15rem; max-width: none; margin-bottom: .55rem; }
+#model-check > .check-specification { display: flex; flex-wrap: wrap; align-items: baseline; gap: .3rem 1.15rem; max-width: none; margin-bottom: .55rem; }
 .check-controls { display: flex; flex-wrap: wrap; align-items: end; gap: .5rem 1.15rem; margin: .85rem 0 1rem; }
 .check-controls .bayes-range { flex: 0 1 16rem; margin: 0; }
 .check-controls select { margin-bottom: 0; }
 .bayes-legend .check-key-observed::before { border-color: var(--ink); border-width: 3px; }
 .bayes-legend .check-key-replicated::before { border-color: #789e91; }
-.check-charts .bayes-figure { padding: .75rem; background: var(--lab); border: 1px solid var(--rule); }
+.check-charts .bayes-figure { container-type: inline-size; padding: .75rem; background: var(--lab); border: 1px solid var(--rule); }
+.check-charts .bayes-figure-title { font-size: clamp(.95rem, 7cqi, 1.24rem); }
 .bf-lab { max-width: 55rem; }
 .bf-models, .bf-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
 .bf-definitions { margin-bottom: .95rem; }
@@ -167,6 +167,7 @@
 .bayes-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.05rem; }
 .bayes-figure { margin: 0; min-width: 0; }
 .bayes-figure h3 { font-size: 1.24rem; margin: 0; }
+.bayes-figure .bayes-figure-title { color: var(--ink); font-weight: 700; }
 .bayes-figure > p { color: var(--muted); margin-bottom: 0; font-size: .92rem; }
 .bayes-figure svg { display: block; max-width: 100%; height: auto; }
 .bayes-axis-label { display: flex; justify-content: space-between; font-size: .78rem; color: var(--ink); }
