@@ -1,4 +1,4 @@
-import {normalDensity} from './bayes-math.mjs?v=6325cd8a0930';
+import {betaDensity, normalDensity} from './bayes-math.mjs?v=8180fc90994c';
 
 export function betaBinomial(n, a, b) {
   // Neighboring probabilities avoid direct evaluation of binomial coefficients.
@@ -32,6 +32,15 @@ export function quantile(cells, p) {
     cumulative += mass;
   }
   return cells.at(-1).hi;
+}
+
+export function clopperPearson(x, n, level = 0.95) {
+  const tail = (1 - level) / 2;
+  const betaQuantile = (a, b, p) => quantile(discretize(betaDensity(a, b), t => t), p);
+  return [
+    x === 0 ? 0 : betaQuantile(x, n - x + 1, tail),
+    x === n ? 1 : betaQuantile(x + 1, n - x, 1 - tail)
+  ];
 }
 
 export function highestDensity(cells, level) {

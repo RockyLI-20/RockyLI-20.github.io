@@ -1,15 +1,18 @@
-import {betaDensity, betaUpdate, coinExample, countHeads, normalDensity, probability, relativeLikelihood} from './bayes-math.mjs?v=6325cd8a0930';
+import {betaDensity, betaUpdate, coinExample, countHeads, normalDensity, probability, relativeLikelihood} from './bayes-math.mjs?v=8180fc90994c';
 import {
   betaBinomial, discretize, highestDensity, logBayesFactor,
   modelCriteria, quantile, regressionPosteriorSampler, shrinkageModes
-} from './inference-math.mjs?v=6325cd8a0930';
-import {setupMcmcLab} from './mcmc-lab.mjs?v=6325cd8a0930';
+} from './inference-math.mjs?v=8180fc90994c';
+import {setupMcmcLab} from './mcmc-lab.mjs?v=8180fc90994c';
+import {axisMath, betaMath, math, tex} from './math.mjs?v=8180fc90994c';
 
 const {Plot, d3} = window;
 const byId = id => document.getElementById(id);
 const value = id => byId(id).valueAsNumber;
 const write = (id, text) => { byId(id).textContent = text; };
-const percent = p => `${(100 * p).toFixed(1)}%`;
+const writeMath = (id, markup) => { byId(id).innerHTML = markup; };
+const percentValue = p => (100 * p).toFixed(1);
+const percent = p => `${percentValue(p)}%`;
 const format = d3.format('.3~f');
 const style = getComputedStyle(document.querySelector('.bayes-page'));
 const ink = style.getPropertyValue('--ink').trim();
@@ -28,7 +31,7 @@ if (validShare) {
   if (known) byId('prediction-prior').value = known;
   else {
     priors.shared = sharedPrior;
-    byId('prediction-prior').add(new Option(`From Chapter 1 · Beta(${sharedPrior.join(', ')})`, 'shared', true, true));
+    byId('prediction-prior').add(new Option('From Chapter 1', 'shared', true, true));
   }
 }
 
@@ -58,15 +61,18 @@ const curve = (density, domain, n) => range(...domain, n).map(x => ({x, y: densi
 const bins = probabilities => probabilities.map((p, k) => ({k, p}));
 const betaWindow = (a, b) => [a < 1 ? 0.01 : 0, b < 1 ? 0.99 : 1];
 
-function draw(id, label, options, height = 236) {
+function draw(id, label, {xMath, yMath, ...options}, height = 236) {
   const host = byId(id);
-  const width = host.clientWidth;
+  const width = options.width ?? host.clientWidth;
+  const right = options.marginRight ?? 12;
   const chart = Plot.plot({
     width, height, marginTop: 24, marginBottom: 42, marginLeft: 48, marginRight: 12,
     ariaLabel: label, style: {background: 'transparent', fontFamily: 'inherit', fontSize: 12},
     ...options, x: {ticks: width < 370 ? 4 : 7, ...options.x},
     y: {grid: true, ticks: 4, zero: true, ...options.y}
   });
+  if (xMath) axisMath(chart, xMath + ' →', {x: 4, y: height - 22, width: width - right - 4, align: 'right'});
+  if (yMath) axisMath(chart, '↑ ' + yMath, {x: 4, width: width - 8});
   host.replaceChildren(chart);
   return chart;
 }
@@ -97,12 +103,14 @@ function renderInterval() {
     return left < right ? curve(density, [left, right], 100).map(point => ({...point, region})) : [];
   });
   const bounds = pair => `[${pair.map(format).join(', ')}]`;
-  const interval = ` 95% HPD ${regions.map(bounds).join(' ∪ ')}.`;
+  const interval = math(regions.map(bounds).join(tex` \cup `));
   const clipped = priorA < 1 || priorB < 1 ? ' The plot trims 0.01 near each diverging endpoint.' : '';
-  write('interval-summary', `Beta(${a}, ${b}) · Mean ${format(mean)}.${interval}${clipped}`);
+  writeMath('prediction-prior-distribution', betaMath(priorA, priorB));
+  writeMath('interval-summary', `${betaMath(a, b)} · Mean ${format(mean)}. 95% HPD ${interval}.${clipped}`);
   draw('interval-plot', 'Prior and posterior densities with a 95% highest-density region and relative likelihood on the right axis', {
     marginRight: 38,
-    x: {domain: [0, 1], label: 'Chance of heads, θ'},
+    x: {domain: [0, 1], label: null},
+    xMath: `Chance of heads, ${math(tex`\theta`)}`,
     y: {domain: [0, densityLimit]},
     marks: [
       Plot.areaY(shade, {x: 'x', y: 'y', z: 'region', fill: teal, fillOpacity: 0.27}),
@@ -143,7 +151,7 @@ function renderPredictive() {
   write('round-size', `(${future} ${future === 1 ? 'toss' : 'tosses'} per round)`);
   write('range-from-value', from);
   write('range-to-value', to);
-  write('predictive-summary', `P(${from} ≤ heads ≤ ${to}) = ${percent(mass)}.`);
+  writeMath('predictive-summary', math(tex`P(${from}\le\mathrm{heads}\le${to})=${percentValue(mass)}\%`) + '.');
   byId('predictive-simulated').hidden = !predictiveDraws.length;
   if (predictiveDraws.length) {
     write('predictive-simulated', `Simulated ${percent(predictiveDraws.filter(selected).length / predictiveDraws.length)} of ${predictiveDraws.length} rounds.`);
@@ -154,7 +162,7 @@ function renderPredictive() {
   byId('observed-tails').value = tails;
   write('observed-heads-value', heads);
   write('observed-tails-value', tails);
-  write('observed-total', `n = ${tosses.length}`);
+  writeMath('observed-total', math(`n=${tosses.length}`));
   const chart = draw('predictive-plot', 'Exact predictive probabilities with highlighted range and simulated frequencies', {
     x: {domain: [-0.5, future + 0.5], label: 'Heads per round', tickFormat: k => Number.isInteger(k) ? k : ''},
     y: {label: 'Probability'},
@@ -230,8 +238,9 @@ function renderCheck() {
   byId('check-guide').hidden = !trend;
   for (const {id, name, replicas} of models) {
     const lines = replicas.flatMap((points, replica) => points.map(point => ({...point, replica})));
-    draw(id, `${name}. Observed test ${trend ? 'means by x₂' : 'outcome density'} and 30 posterior predictive replicas.`, {
-      x: {domain: xDomain, label: trend ? 'Mean x₂ in group' : 'Outcome y'},
+    draw(id, `${name}. Observed test ${trend ? 'means by the second predictor' : 'outcome density'} and 30 posterior predictive replicas.`, {
+      x: {domain: xDomain, label: null},
+      xMath: trend ? `Mean ${math('x_2')} in group` : `Outcome ${math('y')}`,
       y: {domain: yDomain, label: trend ? 'Mean outcome' : 'Density', nice: true, zero: false},
       marks: [
         Plot.lineY(lines, {x: 'x', y: 'y', z: 'replica', stroke: teal, strokeOpacity: 0.27, strokeWidth: 1.1}),
@@ -253,17 +262,20 @@ function renderFactor() {
   const logPost = logPrior + logFactor;
   const after = probability(logPost);
   const nullAfter = probability(-logPost);
-  const odds = log => Math.abs(log) < 12 ? d3.format('.3~g')(Math.exp(log)) : `exp(${format(log)})`;
+  const odds = log => Math.abs(log) < 12 ? d3.format('.3~g')(Math.exp(log)) : tex`\exp(${format(log)})`;
   write('factor-heads-value', heads);
   write('factor-tails-value', tails);
-  write('factor-total', `n = ${heads + tails}`);
+  writeMath('factor-total', math(`n=${heads + tails}`));
   write('model-prob-value', `${value('model-prob')}%`);
   write('factor-shape-value', shape);
   byId('factor-bar-null').value = nullAfter;
   byId('factor-bar-alternative').value = after;
   write('factor-null', percent(nullAfter));
   write('factor-alternative', percent(after));
-  write('factor-summary', `Prior P(M₁) ${percent(p)} · Prior odds ${odds(logPrior)} × BF₁₀ ${odds(logFactor)} = posterior odds ${odds(logPost)} → Posterior P(M₁) ${percent(after)}`);
+  const before = math(tex`P(M_1)=${percentValue(p)}\%`);
+  const updated = math(tex`P(M_1\mid Y)=${percentValue(after)}\%`);
+  const factor = math(tex`\times\mathrm{BF}_{10}\ ${odds(logFactor)}=`);
+  writeMath('factor-summary', `Prior ${before} · Prior odds ${math(odds(logPrior))} ${factor} posterior odds ${math(odds(logPost))} → Posterior ${updated}`);
 }
 
 const criterionNames = ['AIC', 'BIC', 'DIC'];
@@ -285,7 +297,7 @@ function renderCriteria() {
   const response = sample.map(({x, error}, i) =>
     error + reduced[i].reduce((sum, predictor) => sum + 0.5 * predictor, 0) + strength * x[p - 1]
   );
-  const names = ['M₀', 'M₁'];
+  const names = ['M_0', 'M_1'];
   const rows = [modelCriteria(reduced, response, sd), modelCriteria(full, response, sd)];
   for (const [id, number] of [['criteria-n', n], ['criteria-p', p], ['criteria-strength', strength], ['criteria-sd', sd]]) {
     write(`${id}-value`, format(number));
@@ -297,18 +309,22 @@ function renderCriteria() {
       if (score === null) return '<td>—</td>';
       return other !== null && score < other ? `<td><strong>${format(score)}</strong></td>` : `<td>${format(score)}</td>`;
     });
-    return `<tr><th scope="row">${names[i]}</th><td>${k}</td>${cells.join('')}<td>${format(pD)}</td></tr>`;
+    return `<tr><th scope="row">${math(names[i])}</th><td>${k}</td>${cells.join('')}<td>${format(pD)}</td></tr>`;
   }).join('');
   const scores = rows.flatMap(({scores}, i) => criterionNames.map(name => ({
     model: names[i], name, score: scores[name]
   }))).filter(d => d.score !== null);
-  draw('criteria-plot', 'AIC, BIC, and DIC scores grouped by regression model', {
+  const chart = draw('criteria-plot', 'AIC, BIC, and DIC scores grouped by regression model', {
     x: {domain: criterionNames, label: null},
     y: {label: 'Score'},
-    fx: {domain: names, label: null},
+    fx: {domain: names, axis: null},
     marginTop: 32,
     marks: [Plot.barY(scores, {fx: 'model', x: 'name', y: 'score', fill: teal, inset: 5})]
   }, 225);
+  const facets = chart.scale('fx');
+  for (const name of names) {
+    axisMath(chart, math(name), {x: facets.apply(name), width: facets.bandwidth, align: 'center'});
+  }
   const penalties = criterionNames.map(name => ({name, strength: rows[1].penalties[name]}));
   draw('criteria-penalties', 'AIC, BIC, and DIC penalty strength for M1', {
     x: {domain: criterionNames, label: 'Criterion'},
@@ -317,7 +333,8 @@ function renderCriteria() {
   }, 225);
   const largest = penalties.reduce((highest, item) => item.strength > highest.strength ? item : highest);
   const nominal = n < p ? ' nominal' : '';
-  write('criteria-insight', `With n = ${n} and ${p} ${p === 1 ? 'predictor' : 'predictors'} in M₁, ${largest.name} applies the largest${nominal} penalty to M₁ (${format(largest.strength)}).`);
+  const fullModel = math('M_1');
+  writeMath('criteria-insight', `With ${math(`n=${n}`)} and ${p} ${p === 1 ? 'predictor' : 'predictors'} in ${fullModel}, ${largest.name} applies the largest${nominal} penalty to ${fullModel} (${format(largest.strength)}).`);
   byId('criteria-rank-note').hidden = n >= p;
 }
 
@@ -334,7 +351,7 @@ function renderLasso() {
     y: estimate[1] + radius * (rho * Math.cos(t) + residualSd * Math.sin(t))
   }));
   const domain = [-4, 5];
-  const axes = [{domain, label: 'β₁'}, {domain, label: 'β₂', grid: false}];
+  const coefficient = [math(tex`\beta_1`), math(tex`\beta_2`)];
   write('lasso-rate-value', lambda);
 
   for (const {name, mode, circle} of [
@@ -359,7 +376,8 @@ function renderLasso() {
     const touching = Math.hypot(dx, (dy - rho * dx) / residualSd);
     const width = Math.min(byId(`${name}-plot`).clientWidth, 455);
     draw(`${name}-plot`, `${name} likelihood contours, prior density, and posterior mode`, {
-      width, x: axes[0], y: axes[1],
+      width, x: {domain, label: null}, y: {domain, label: null, grid: false},
+      xMath: coefficient[0], yMath: coefficient[1],
       marks: [
         ...densityBands,
         Plot.ruleX([0], {stroke: '#89948a'}),
@@ -371,7 +389,8 @@ function renderLasso() {
         Plot.dot([mode], {x: d => d[0], y: d => d[1], fill: teal, stroke: 'white', r: 5.5, title: () => 'Posterior mode'})
       ]
     }, width + 6);
-    write(`${name}-summary`, `Posterior mode (β₁, β₂) = (${mode.map(format).join(', ')}) · ${circle ? 'L₂' : 'L₁'} radius ${format(radius)}`);
+    const modeMath = math(tex`(\beta_1,\beta_2)=(${mode.map(format).join(',')})`);
+    writeMath(`${name}-summary`, `Posterior mode ${modeMath} · ${math(circle ? 'L_2' : 'L_1')} radius ${format(radius)}`);
   }
 }
 

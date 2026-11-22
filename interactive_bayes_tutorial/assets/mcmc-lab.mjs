@@ -1,5 +1,6 @@
-import {normalDensity} from './bayes-math.mjs?v=6325cd8a0930';
-import {acceptanceTrend, autocorrelation, effectiveSamples, mhMove, targets, tracePoints} from './mcmc-math.mjs?v=6325cd8a0930';
+import {normalDensity} from './bayes-math.mjs?v=8180fc90994c';
+import {acceptanceTrend, autocorrelation, effectiveSamples, mhMove, targets, tracePoints} from './mcmc-math.mjs?v=8180fc90994c';
+import {math, tex} from './math.mjs?v=8180fc90994c';
 
 const {Plot, d3} = window;
 const byId = id => document.getElementById(id);
@@ -7,7 +8,8 @@ const colors = ['#245d5b', '#a34739', '#65517b', '#30678a'];
 const dashes = [null, '5 3', '2 3', '7 3 2 3'];
 const purple = '#65517b';
 const recentStates = 1000;
-const liveStepMs = 36;
+const liveStepMs = 12;
+const liveLimit = 2000;
 const targetRefreshMs = 135;
 const diagnosticRefreshMs = 280;
 const traceFrame = {marginLeft: 48, marginRight: 12, marginTop: 24, marginBottom: 42};
@@ -24,6 +26,9 @@ export function setupMcmcLab(draw) {
   const coordinate = byId('mh-coordinate');
   const root = byId('mh-settings');
   const template = byId('mh-setting-template');
+  const liveButton = byId('mh-live');
+  const liveStatus = byId('mh-live-status');
+  liveStatus.textContent = `Live limit reached at ${liveLimit.toLocaleString('en-US')} steps per chain. Reset chains to run live again.`;
   const groups = [
     {key: 'single', label: 'Single setting', sd: 0.4},
     {key: 'a', label: 'Setting A', sd: 0.2},
@@ -41,12 +46,15 @@ export function setupMcmcLab(draw) {
   function pause() {
     cancelAnimationFrame(liveRequest);
     liveRequest = 0;
-    byId('mh-live').textContent = 'Run live';
+    liveButton.textContent = 'Run live';
   }
 
   function renderActive(update = 'all') {
     if (!lab.open) return;
-    for (const group of activeGroups()) render(group, update);
+    const groups = activeGroups();
+    liveButton.disabled = groups.every(group => group.step >= liveLimit);
+    liveStatus.hidden = !liveButton.disabled;
+    for (const group of groups) render(group, update);
   }
 
   function refreshPanels() {
@@ -105,9 +113,10 @@ export function setupMcmcLab(draw) {
     refreshPanels();
   }
 
-  function advance(steps, update) {
+  function advance(steps, update, limit = Infinity) {
     for (const group of activeGroups()) {
-      for (let i = 0; i < steps; i += 1) {
+      const count = Math.min(steps, limit - group.step);
+      for (let i = 0; i < count; i += 1) {
         group.step += 1;
         for (const chain of group.chains) {
           const move = mhMove(chain.draws.at(-1).state, group.sd, target, chain.normal, chain.random);
@@ -119,6 +128,14 @@ export function setupMcmcLab(draw) {
       }
     }
     renderActive(update);
+  }
+
+  function advanceLive(steps, update = 'all') {
+    advance(steps, update, liveLimit);
+    if (liveButton.disabled) {
+      pause();
+      if (update !== 'all') renderActive();
+    }
   }
 
   function runLive(now) {
@@ -135,7 +152,7 @@ export function setupMcmcLab(draw) {
       lastTarget = now;
       update = 'target';
     }
-    advance(steps, update);
+    advanceLive(steps, update);
   }
 
   function updateStartFields(group) {
@@ -148,7 +165,7 @@ export function setupMcmcLab(draw) {
     pause();
     group.starts[Number(group.parts['start-chain'].value)] = state;
     reset(group);
-    render(group);
+    renderActive();
   }
 
   function targetMarks(group, states, focus, width, height) {
@@ -251,8 +268,8 @@ export function setupMcmcLab(draw) {
     parts['target-key'].textContent = joint
       ? 'Joint density in green. Purple shading marks the 1 and 2 SD proposal contours for the selected chain. Click to set its start.'
       : 'Gray line is the target. Purple shading is the next proposal density for the selected chain. Click to set its start.';
-    parts.decision.textContent = move
-      ? `Chain ${focus + 1} · ${stateText(move.current)} → ${stateText(move.proposal)} · ${move.accepted ? 'Accepted' : 'Rejected'} (${percent(move.chance)})`
+    parts.decision.innerHTML = move
+      ? `Chain ${focus + 1} · ${math(tex`(${stateText(move.current)})\to(${stateText(move.proposal)})`)} · ${move.accepted ? 'Accepted' : 'Rejected'} (${percent(move.chance)})`
       : 'Step once to see the first proposal.';
     const targetWidth = joint ? Math.min(parts.target.clientWidth, 420) : parts.target.clientWidth;
     let targetHeight = 224;
@@ -370,14 +387,15 @@ export function setupMcmcLab(draw) {
     pause();
     advance(200);
   });
-  byId('mh-live').addEventListener('click', () => {
+  liveButton.addEventListener('click', () => {
     if (liveRequest) {
       pause();
       renderActive();
       return;
     }
-    byId('mh-live').textContent = 'Pause';
-    advance(1);
+    liveButton.textContent = 'Pause';
+    advanceLive(1);
+    if (liveButton.disabled) return;
     lastStep = lastTarget = lastDiagnostic = performance.now();
     liveRequest = requestAnimationFrame(runLive);
   });

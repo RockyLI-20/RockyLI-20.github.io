@@ -1,12 +1,49 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Ruifeng LI — statistics research, AI development, teaching, and market research."><title>Prior and Posterior Distribution | Ruifeng LI</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&display=swap" rel="stylesheet"><link rel="stylesheet" href="../style.css"><script src="../app.js" defer></script><link rel="stylesheet" href="assets/tutorial.css?v=6325cd8a0930"></head><body><a class="skip" href="#main">Skip to content</a><header class="header wrap"><a class="brand" href="../index.html" aria-label="Ruifeng LI, home">Ruifeng LI</a><button class="menu-toggle" aria-expanded="false" aria-controls="nav">Menu <span>☰</span></button><nav id="nav" aria-label="Main navigation"><a href="../research.html">Research</a><a href="../teaching.html">Teaching</a><a href="../ai-development.html">AI Development</a><a href="../market-research.html">Market Research</a><a href="../writing.html">Writing</a></nav></header><main id="main"><article class="wrap bayes-page">
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Ruifeng LI — statistics research, AI development, teaching, and market research."><title>Prior and Posterior Distribution | Ruifeng LI</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&display=swap" rel="stylesheet"><link rel="stylesheet" href="../style.css"><script src="../app.js" defer></script><link rel="stylesheet" href="assets/tutorial.css?v=8180fc90994c"><link rel="stylesheet" href="assets/vendor/katex-0.19.1/katex.min.css"><script src="assets/vendor/katex-0.19.1/katex.min.js" defer></script></head><body><a class="skip" href="#main">Skip to content</a><header class="header wrap"><a class="brand" href="../index.html" aria-label="Ruifeng LI, home">Ruifeng LI</a><button class="menu-toggle" aria-expanded="false" aria-controls="nav">Menu <span>☰</span></button><nav id="nav" aria-label="Main navigation"><a href="../research.html">Research</a><a href="../teaching.html">Teaching</a><a href="../ai-development.html">AI Development</a><a href="../market-research.html">Market Research</a><a href="../writing.html">Writing</a></nav></header><main id="main"><article class="wrap bayes-page">
   <a class="text-link" href="index.html">Interactive Bayesian Tool Box</a>
   <p class="bayes-context">STAT 6206 · Chapter 1</p>
-  <h1>How much evidence changes your mind?</h1>
-  <p class="bayes-intro">Compare weak, strong, and custom priors using the same coin tosses.</p>
+  <h1>Prior, likelihood and posterior</h1>
   <noscript><p>Enable JavaScript to run the experiments.</p></noscript>
+  <section class="bayes-small-sample" aria-labelledby="small-sample-title">
+    <h2 class="bayes-advanced-title" id="small-sample-title">Why do we need a Bayesian method? <span>(A small sample size example)</span></h2>
+    <p>Toss a coin with an unknown probability <span data-tex="\theta">θ</span> of landing heads. Let <span data-tex="x">x</span> be the number of heads in <span data-tex="n">n</span> tosses.</p>
+    <div class="bayes-count-controls small-sample-controls">
+      <label class="bayes-range">
+        <span><span>Heads <span data-tex="(x)">(x)</span></span> <output id="small-sample-x-value" for="small-sample-x">5</output></span>
+        <input id="small-sample-x" type="range" min="0" max="10" value="5">
+      </label>
+      <label class="bayes-range">
+        <span><span>Tosses <span data-tex="(n)">(n)</span></span> <output id="small-sample-n-value" for="small-sample-n">5</output></span>
+        <input id="small-sample-n" type="range" min="1" max="10" value="5">
+      </label>
+      <button type="button" class="bayes-secondary" id="small-sample-extreme">Try extreme case (10/10)</button>
+    </div>
+    <p class="bayes-reference">(Try all heads to see how the prior tempers an extreme small-sample estimate.)</p>
+    <div class="bayes-pair small-sample-charts">
+      <figure class="bayes-figure">
+        <h3 class="bayes-figure-title">Frequentist</h3>
+        <p class="small-sample-estimate"><output id="small-sample-mle" for="small-sample-x small-sample-n"></output></p>
+        <div id="small-sample-ci-plot"></div>
+        <figcaption id="small-sample-ci"></figcaption>
+      </figure>
+      <figure class="bayes-figure">
+        <h3 class="bayes-figure-title">Bayesian</h3>
+        <p class="small-sample-estimate">Posterior mean <output id="small-sample-mean" for="small-sample-x small-sample-n"></output> <span class="small-sample-comparison" id="small-sample-comparison"></span></p>
+        <div id="small-sample-density"></div>
+        <figcaption id="small-sample-hpd"></figcaption>
+        <ul class="bayes-legend" aria-label="Chart key">
+          <li class="bayes-key-prior"><span data-tex="\operatorname{Beta}(1,1)">Beta(1, 1)</span> prior</li>
+          <li class="bayes-key-posterior">Posterior</li>
+          <li class="bayes-key-likelihood">Relative likelihood (right axis)</li>
+          <li class="inference-key-hpd">95% HPD</li>
+        </ul>
+      </figure>
+    </div>
+  </section>
+
   <section class="bayes-workbench" aria-labelledby="coin-title">
     <div class="bayes-controls">
-      <h2 id="coin-title">Toss a coin</h2>
+      <h2 id="coin-title">How the prior affects the posterior</h2>
+      <p>Toss a coin to compare three priors on the same data.</p>
       <div class="bayes-toss-buttons">
         <button type="button" class="bayes-action" data-toss="H">Add heads</button>
         <button type="button" class="bayes-action" data-toss="T">Add tails</button>
@@ -42,12 +79,12 @@
       </ul>
       <div class="bayes-pair">
         <figure class="bayes-figure">
-          <h3 class="bayes-figure-title">Weak prior: Beta(1, 1)</h3>
+          <h3 class="bayes-figure-title">Weak prior: <span data-tex="\operatorname{Beta}(1,1)">Beta(1, 1)</span></h3>
           <div id="weak-plot"></div>
           <figcaption id="weak-summary"></figcaption>
         </figure>
         <figure class="bayes-figure">
-          <h3 class="bayes-figure-title">Strong prior: Beta(20, 20)</h3>
+          <h3 class="bayes-figure-title">Strong prior: <span data-tex="\operatorname{Beta}(20,20)">Beta(20, 20)</span></h3>
           <div id="strong-plot"></div>
           <figcaption id="strong-summary"></figcaption>
         </figure>
@@ -58,11 +95,11 @@
       <div class="bayes-controls">
         <h3 id="custom-title">What’s your prior</h3>
         <label class="bayes-range">
-          <span>Alpha (α) <output id="custom-alpha-value" for="custom-alpha">2</output></span>
+          <span><span>Alpha <span data-tex="(\alpha)">(α)</span></span> <output id="custom-alpha-value" for="custom-alpha">2</output></span>
           <input id="custom-alpha" type="range" min="0.5" max="30" step="0.5" value="2">
         </label>
         <label class="bayes-range">
-          <span>Beta (β) <output id="custom-beta-value" for="custom-beta">2</output></span>
+          <span><span>Beta <span data-tex="(\beta)">(β)</span></span> <output id="custom-beta-value" for="custom-beta">2</output></span>
           <input id="custom-beta" type="range" min="0.5" max="30" step="0.5" value="2">
         </label>
       </div>
@@ -81,38 +118,43 @@
 
   <details class="bayes-explanation">
     <summary>How it works</summary>
-    <p>After <var>h</var> heads and <var>t</var> tails, a Beta(α, β) prior updates to Beta(α + <var>h</var>, β + <var>t</var>). The posterior mean is (α + <var>h</var>)/(α + β + <var>h</var> + <var>t</var>). The weak and strong panels share a density scale. The dotted vertical line marks θ = 0.5.</p>
-    <p>Read the purple likelihood curve using the right axis. The relative likelihood divides θ<sup><var>h</var></sup>(1 − θ)<sup><var>t</var></sup> by its maximum. All three panels use the same tosses. As the record grows, the likelihood concentrates and the posteriors draw closer to it. The 14-head preset comes from the STAT 6206 slides, pp. 17–20. See also <a href="https://seeing-theory.brown.edu/bayesian-inference/index.html#section3">Seeing Theory’s Prior to Posterior experiment</a>.</p>
+    <p>After <span data-tex="h">h</span> heads and <span data-tex="t">t</span> tails, a <span data-tex="\operatorname{Beta}(\alpha,\beta)">Beta(α, β)</span> prior updates to <span data-tex="\operatorname{Beta}(\alpha+h,\beta+t)">Beta(α + h, β + t)</span>. The posterior mean is <span data-tex="\frac{\alpha+h}{\alpha+\beta+h+t}">(α + h)/(α + β + h + t)</span>. The weak and strong panels share a density scale. The dotted vertical line marks <span data-tex="\theta=0.5">θ = 0.5</span>.</p>
+    <p>Read the purple likelihood curve using the right axis. The relative likelihood divides <span data-tex="\theta^h(1-\theta)^t">θ^h(1 − θ)^t</span> by its maximum. All three panels use the same tosses. As the record grows, the likelihood concentrates and the posteriors draw closer to it. See also <a href="https://seeing-theory.brown.edu/bayesian-inference/index.html#section3">Seeing Theory’s Prior to Posterior experiment</a>.</p>
   </details>
 
   <h2 class="bayes-advanced-title">Explore further</h2>
   <details class="bayes-advanced" id="objective">
-    <summary>Compare uniform, Jeffreys, and Haldane priors</summary>
+    <summary>Compare different conjugate priors</summary>
     <div class="bayes-advanced-body">
-      <p>All three priors use your current tosses. Try the one-sided presets and see which posterior can be normalized.</p>
-      <div class="bayes-utility bayes-presets" aria-label="Toss presets">
-        <button type="button" class="bayes-secondary" data-example="default">14 heads, 3 tails</button>
-        <button type="button" class="bayes-secondary" data-example="heads">17 heads</button>
-        <button type="button" class="bayes-secondary" data-example="tails">17 tails</button>
-        <button type="button" class="bayes-secondary" data-example="empty">No tosses</button>
+      <p>Compare the three posteriors for the same counts. Set heads or tails to zero to see when a posterior is improper.</p>
+      <div class="bayes-count-controls">
+        <label class="bayes-range">
+          <span>Heads <output id="objective-heads-value" for="objective-heads">5</output></span>
+          <input id="objective-heads" type="range" min="0" max="20" value="5">
+        </label>
+        <label class="bayes-range">
+          <span>Tails <output id="objective-tails-value" for="objective-tails">2</output></span>
+          <input id="objective-tails" type="range" min="0" max="20" value="2">
+        </label>
       </div>
-      <p id="objective-count" role="status"></p>
+      <p class="bayes-feedback">Total tosses <output id="objective-count" for="objective-heads objective-tails"><span data-tex="n=7">n = 7</span></output></p>
       <table class="bayes-table">
         <thead><tr><th scope="col">Prior</th><th scope="col">Posterior</th><th scope="col">Mean</th></tr></thead>
         <tbody id="prior-summary"></tbody>
       </table>
       <label for="objective-prior">Prior to plot</label>
       <select id="objective-prior">
-        <option value="uniform">Uniform · Beta(1, 1)</option>
-        <option value="jeffreys">Jeffreys · Beta(½, ½)</option>
+        <option value="uniform">Uniform</option>
+        <option value="jeffreys">Jeffreys</option>
         <option value="haldane">Haldane · improper</option>
       </select>
       <div class="bayes-pair bayes-objective-charts">
         <figure class="bayes-figure">
           <h3 id="objective-title">Prior and posterior density</h3>
-          <ul class="bayes-legend" id="objective-legend" aria-label="Chart key">
-            <li class="bayes-key-prior" id="objective-prior-key">Prior</li>
-            <li class="bayes-key-posterior">Posterior</li>
+          <ul class="bayes-legend" aria-label="Chart key">
+            <li class="bayes-key-prior" id="objective-prior-key">Prior density</li>
+            <li class="bayes-key-posterior" id="objective-posterior-key">Posterior density</li>
+            <li class="bayes-key-likelihood">Relative likelihood (right axis)</li>
           </ul>
           <div id="objective-plot"></div>
           <figcaption id="objective-note"></figcaption>
@@ -120,7 +162,7 @@
         <figure class="bayes-figure" id="kernel-figure" hidden>
           <h3>Haldane prior kernel</h3>
           <div id="kernel-plot"></div>
-          <figcaption>The kernel 1/[θ(1 − θ)] diverges at both ends. The plotted window is 0.01–0.99.</figcaption>
+          <figcaption>The kernel <span data-tex="1/[\theta(1-\theta)]">1/[θ(1 − θ)]</span> diverges at both ends. The plotted window is 0.01–0.99.</figcaption>
         </figure>
       </div>
       <p class="bayes-reference">STAT 6206 Chapter 1, pp. 21–27.</p>
@@ -130,10 +172,10 @@
   <details class="bayes-advanced" id="coordinates">
     <summary>The Same Prior Looks Different on Different Scales</summary>
     <div class="bayes-advanced-body">
-      <p>A uniform prior on the success probability θ looks completely flat.<br>But when we reparameterize it to the log-odds scale γ = log[θ / (1 − θ)], the same prior becomes a logistic density that peaks at θ = 0.5.</p>
+      <p>A uniform prior on the success probability <span data-tex="\theta">θ</span> looks completely flat.<br>But when we reparameterize it to the log-odds scale <span data-tex="\gamma=\log[\theta/(1-\theta)]">γ = log[θ / (1 − θ)]</span>, the same prior becomes a logistic density that peaks at <span data-tex="\theta=0.5">θ = 0.5</span>.</p>
       <p>Drag the cutoff to see that the shaded probability is identical on both scales — only the visual shape changes.</p>
       <label class="bayes-range bayes-short-range">
-        <span>Cutoff on θ <output id="cutoff-value" for="cutoff"></output></span>
+        <span><span>Cutoff on <span data-tex="\theta">θ</span></span> <output id="cutoff-value" for="cutoff"></output></span>
         <input id="cutoff" type="range" min="0.05" max="0.95" step="0.01" value="0.75">
       </label>
       <p id="coordinate-summary" class="bayes-feedback" role="status"></p>
@@ -148,12 +190,12 @@
         </figure>
       </div>
       <p class="bayes-takeaway"><strong>Key takeaway:</strong> There is no unique “non-informative” prior. A prior that looks uninformative on one scale may be informative on another.</p>
-      <p class="bayes-reference">γ = log[θ/(1 − θ)] and |dθ/dγ| = θ(1 − θ). The log-odds plot shows −8 to 8. The reported probability includes the area below −8. STAT 6206 Chapter 1, p. 21.</p>
+      <p class="bayes-reference"><span data-tex="\gamma=\log[\theta/(1-\theta)]">γ = log[θ/(1 − θ)]</span> and <span data-tex="|d\theta/d\gamma|=\theta(1-\theta)">|dθ/dγ| = θ(1 − θ)</span>. The log-odds plot shows −8 to 8. The reported probability includes the area below −8. STAT 6206 Chapter 1, p. 21.</p>
     </div>
   </details>
 
 </article>
 <script src="assets/vendor/d3-7.9.0.min.js" defer></script>
 <script src="assets/vendor/plot-0.6.19.min.js" defer></script>
-<script src="assets/ch01.mjs?v=6325cd8a0930" type="module"></script>
+<script src="assets/ch01.mjs?v=8180fc90994c" type="module"></script>
 </main><footer><div class="wrap footer-inner"><div><a class="footer-brand" href="../index.html">Ruifeng LI<span>✳</span></a><p>Statistics, ideas, and the work in between.</p></div><div class="footer-links"><a href="../index.html#honors">Honors and Awards</a><a href="../research.html">Research</a><a href="../teaching.html">Teaching</a><a href="../ai-development.html">AI Development</a><a href="../market-research.html">Market Research</a><a href="../writing.html">Writing</a><a href="https://www.linkedin.com/in/ruifeng-li-78461b2b7/">LinkedIn ↗</a></div><p class="copyright">© 2026 Ruifeng LI</p></div></footer></body></html>

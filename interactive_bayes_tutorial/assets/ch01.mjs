@@ -1,17 +1,19 @@
 import {
-  betaDensity, betaUpdate, coinExample, countHeads, logOdds, logOddsDensity, relativeLikelihood
-} from './bayes-math.mjs?v=6325cd8a0930';
+  betaDensity, betaUpdate, countHeads, logOdds, logOddsDensity, relativeLikelihood
+} from './bayes-math.mjs?v=8180fc90994c';
+import {clopperPearson, discretize, highestDensity} from './inference-math.mjs?v=8180fc90994c';
+import {axisMath, betaMath, math, tex} from './math.mjs?v=8180fc90994c';
 
 const {Plot, d3} = window;
 const byId = id => document.getElementById(id);
 const value = id => byId(id).valueAsNumber;
 const write = (id, text) => { byId(id).textContent = text; };
+const writeMath = (id, markup) => { byId(id).innerHTML = markup; };
 const percent = x => `${(100 * x).toFixed(1)}%`;
 const chartColors = getComputedStyle(document.querySelector('.bayes-page'));
 const priorColor = chartColors.getPropertyValue('--prior').trim();
 const posteriorColor = chartColors.getPropertyValue('--posterior').trim();
 const evidenceColor = chartColors.getPropertyValue('--evidence').trim();
-const examples = {default: coinExample, heads: 'H'.repeat(17), tails: 'T'.repeat(17), empty: ''};
 const priors = {uniform: ['Uniform', 1, 1], jeffreys: ['Jeffreys', 0.5, 0.5], haldane: ['Haldane', 0, 0]};
 const growthLimit = 500;
 const growthSizes = [1, 2, 4, 8, 12, 18, 26, 38, 55, 80, 115, 160, 220, 300, 400, growthLimit];
@@ -46,22 +48,28 @@ function betaPoints(a, b) {
 function draw(id, label, x, y, marks, height = 215) {
   const container = byId(id);
   const width = container.clientWidth;
-  const {label: leftLabel, ...scale} = y;
+  const {label: leftLabel, rightLabel, ...scale} = y;
   const axisLabel = document.createElement('div');
   axisLabel.className = 'bayes-axis-label';
   axisLabel.textContent = leftLabel;
+  if (rightLabel) {
+    const secondary = document.createElement('span');
+    secondary.textContent = rightLabel;
+    axisLabel.append(secondary);
+  }
   const svg = Plot.plot({
-    width, height: height - 14, marginLeft: 45, marginRight: 12, marginTop: 9, marginBottom: 41,
+    width, height: height - 14, marginLeft: 45, marginRight: rightLabel ? 38 : 12, marginTop: 9, marginBottom: 41,
     ariaLabel: label,
     style: {background: 'transparent', fontFamily: 'inherit', fontSize: 12},
-    x: {ticks: width < 215 ? 2 : width < 380 ? 4 : 7, ...x},
+    x: {ticks: width < 215 ? 2 : width < 380 ? 4 : 7, domain: x.domain, label: null},
     y: {grid: true, ticks: 4, ...scale, label: null},
     marks
   });
+  axisMath(svg, `${x.label}, ${math(x.symbol)} →`, {x: 4, y: height - 35, width: width - 16, align: 'right'});
   container.replaceChildren(axisLabel, svg);
 }
 
-const probAxis = {domain: [0, 1], label: 'Chance of heads, θ'};
+const probAxis = {domain: [0, 1], label: 'Chance of heads', symbol: tex`\theta`};
 const densityAxis = {label: 'Density', zero: true};
 const line = (data, stroke, pattern) => Plot.lineY(data, {x: 'x', y: 'y', stroke, strokeWidth: 2.3, strokeDasharray: pattern});
 const reference = (x, stroke = '#7c887e') => Plot.ruleX([x], {stroke, strokeDasharray: '2 4'});
@@ -74,6 +82,57 @@ const countText = (heads, tails) => {
   return `${heads} ${heads === 1 ? 'head' : 'heads'} · ${tails} ${tails === 1 ? 'tail' : 'tails'} · ${total} ${total === 1 ? 'toss' : 'tosses'}`;
 };
 const betaText = ({a, b}) => `Beta(${a}, ${b})`;
+
+function likelihoodMarks(likelihood, limit) {
+  return [
+    line(likelihood.map(({x, y}) => ({x, y: limit * y})), evidenceColor, '2 4'),
+    Plot.axisY({
+      anchor: 'right', color: evidenceColor, ticks: [0, limit / 2, limit],
+      tickFormat: y => (y / limit).toFixed(1), label: null
+    })
+  ];
+}
+
+function renderSmallSample() {
+  const n = value('small-sample-n');
+  const x = value('small-sample-x');
+  const estimate = x / n;
+  const posterior = betaUpdate(1, 1, x, n - x);
+  const [lo, hi] = clopperPearson(x, n);
+  const density = betaDensity(posterior.a, posterior.b);
+  const regions = highestDensity(discretize(density, t => t), 0.95);
+  const shade = regions.flatMap(([lo, hi], region) => points(grid(lo, hi, 100), density).map(point => ({...point, region})));
+  const intervalText = bounds => `[${bounds.map(bound => bound.toFixed(3)).join(', ')}]`;
+  const ci = intervalText([lo, hi]);
+  const hpd = regions.map(intervalText).join(' ∪ ');
+  const posteriorData = coinDensity(posterior.a, posterior.b);
+  const limit = 1.18 * d3.max(posteriorData, point => point.y);
+  const comparison = 2 * x === n ? 'same as' : 'pulled back from';
+
+  write('small-sample-x-value', x);
+  write('small-sample-n-value', n);
+  writeMath('small-sample-mle', math(tex`\hat\theta=x/n=${estimate.toFixed(3)}`));
+  write('small-sample-mean', posterior.mean.toFixed(3));
+  write('small-sample-comparison', `(${comparison} ${estimate.toFixed(3)})`);
+  writeMath('small-sample-ci', `95% Clopper–Pearson CI ${math(ci)}`);
+  writeMath('small-sample-hpd', `${betaMath(posterior.a, posterior.b)} posterior · 95% HPD ${math(regions.map(intervalText).join(tex` \cup `))}`);
+
+  draw('small-sample-ci-plot', `Frequentist estimate ${estimate.toFixed(3)} and 95% confidence interval ${ci}`, probAxis,
+    {label: '', domain: [-1, 1], axis: null, grid: false}, [
+      Plot.ruleY([0], {x1: 0, x2: 1, stroke: '#d8d8c8'}),
+      Plot.ruleY([0], {x1: lo, x2: hi, stroke: evidenceColor, strokeWidth: 4}),
+      Plot.ruleX([lo, hi], {y1: -0.07, y2: 0.07, stroke: evidenceColor, strokeWidth: 2}),
+      Plot.dot([{x: estimate, y: 0}], {x: 'x', y: 'y', fill: evidenceColor, stroke: 'white', r: 6})
+    ]);
+  draw('small-sample-density', `Uniform prior, ${betaText(posterior)} posterior, 95% highest posterior density interval ${hpd}, and relative likelihood on the right axis`,
+    probAxis, {...densityAxis, rightLabel: 'Relative likelihood', domain: [0, limit]}, [
+      Plot.areaY(shade, {x: 'x', y: 'y', z: 'region', fill: posteriorColor, fillOpacity: 0.27}),
+      line(coinDensity(1, 1), priorColor, '6 4'),
+      line(posteriorData, posteriorColor),
+      Plot.axisY({anchor: 'left', ticks: 4}),
+      ...likelihoodMarks(coinLikelihood(x, n - x), limit)
+    ]);
+}
 
 function makeCoinPlot(id) {
   const host = byId(id);
@@ -95,8 +154,9 @@ function makeCoinPlot(id) {
     .call(d3.axisRight(relative).tickValues([0, 0.5, 1]).tickFormat(d3.format('.1f')).tickSizeOuter(0));
   svg.append('g').attr('transform', `translate(0,${bottom})`)
     .call(d3.axisBottom(x).ticks(width < 215 ? 2 : width < 380 ? 4 : 7).tickSizeOuter(0));
-  svg.append('text').attr('x', right).attr('y', height - 4).attr('text-anchor', 'end')
-    .attr('fill', 'currentColor').attr('font-size', 12).text('Chance of heads, θ →');
+  axisMath(svg.node(), `${probAxis.label}, ${math(probAxis.symbol)} →`, {
+    x: left, y: height - 20, width: right - left, align: 'right'
+  });
   svg.append('line').attr('x1', x(0.5)).attr('x2', x(0.5)).attr('y1', top).attr('y2', bottom)
     .attr('stroke', '#7c887e').attr('stroke-dasharray', '2 4');
   const path = (stroke, pattern) => svg.append('path').attr('fill', 'none')
@@ -159,8 +219,8 @@ function renderCustom(heads, tails, likelihood = coinLikelihood(heads, tails), a
     prior: coinDensity(a, b), updated: likelihood.length ? coinDensity(posterior.a, posterior.b) : [], likelihood, animate
   });
   const boundaryNote = a < 1 || b < 1 ? ' A density that diverges at a boundary is drawn up to 0.01 from that boundary.' : '';
-  const update = likelihood.length ? ` · Posterior ${betaText(posterior)} · Posterior mean` : ' · Prior mean';
-  write('custom-summary', `Prior ${betaText({a, b})}${update} ${percent(posterior.mean)}.${boundaryNote}`);
+  const update = likelihood.length ? ` · Posterior ${betaMath(posterior.a, posterior.b)} · Posterior mean` : ' · Prior mean';
+  writeMath('custom-summary', `Prior ${betaMath(a, b)}${update} ${percent(posterior.mean)}.${boundaryNote}`);
 }
 
 function renderCoin(animate = false) {
@@ -189,7 +249,7 @@ function renderCoin(animate = false) {
     drawUpdate(`${name}-plot`, `${name} prior`, {
       prior, updated, likelihood, densityLimit: maximum * 1.07, animate
     });
-    write(`${name}-summary`, `${betaText(posterior)} · ${distribution} mean ${percent(posterior.mean)}`);
+    writeMath(`${name}-summary`, `${betaMath(posterior.a, posterior.b)} · ${distribution} mean ${percent(posterior.mean)}`);
   }
 
   write('likelihood-summary', total
@@ -197,36 +257,47 @@ function renderCoin(animate = false) {
     : 'Add or simulate tosses to reveal the likelihood and the updated posteriors.');
 
   renderCustom(heads, tails, likelihood, animate);
-  if (!animate) renderObjective();
 }
 
 function renderObjective() {
   if (!byId('objective').open) return;
-  const [heads, tails] = counts();
+  const heads = value('objective-heads');
+  const tails = value('objective-tails');
   const selected = byId('objective-prior').value;
-  write('objective-count', countText(heads, tails));
-  byId('prior-summary').innerHTML = Object.values(priors).map(([name, a, b]) => {
+  write('objective-heads-value', heads);
+  write('objective-tails-value', tails);
+  writeMath('objective-count', math(`n=${heads + tails}`));
+  writeMath('prior-summary', Object.values(priors).map(([name, a, b]) => {
     const posterior = betaUpdate(a, b, heads, tails);
-    return `<tr><th scope="row">${name}</th><td>${posterior ? betaText(posterior) : 'Improper'}</td><td>${posterior ? percent(posterior.mean) : 'Undefined'}</td></tr>`;
-  }).join('');
+    const distribution = a ? betaMath(a, b) : 'improper';
+    return `<tr><th scope="row">${name} · ${distribution}</th><td>${posterior ? betaMath(posterior.a, posterior.b) : 'Improper'}</td><td>${posterior ? percent(posterior.mean) : 'Undefined'}</td></tr>`;
+  }).join(''));
 
   const [name, a, b] = priors[selected];
   const posterior = betaUpdate(a, b, heads, tails);
   const haldane = selected === 'haldane';
   byId('kernel-figure').hidden = !haldane;
   byId('objective-prior-key').hidden = haldane;
-  byId('objective-legend').hidden = !posterior;
-  write('objective-title', haldane ? 'Haldane posterior density' : `${name} prior and posterior density`);
-  byId('objective-plot').hidden = !posterior;
-  if (posterior) {
-    const marks = haldane ? [] : [line(betaPoints(a, b), priorColor, '6 4')];
-    marks.push(line(betaPoints(posterior.a, posterior.b), posteriorColor));
-    draw('objective-plot', `${name} prior comparison, posterior ${betaText(posterior)}`, probAxis, densityAxis, marks, 245);
-  }
+  byId('objective-posterior-key').hidden = !posterior;
+  const title = haldane ? (posterior ? 'Haldane posterior density and likelihood' : 'Relative likelihood') : `${name} prior, likelihood and posterior`;
+  write('objective-title', title);
+  const priorData = haldane ? [] : betaPoints(a, b);
+  const posteriorData = posterior ? betaPoints(posterior.a, posterior.b) : [];
+  const hasDensity = priorData.length > 0 || posteriorData.length > 0;
+  const limit = hasDensity ? 1.07 * d3.max([...priorData, ...posteriorData], d => d.y) : 1;
+  const likelihood = heads + tails ? coinLikelihood(heads, tails) : points(coinGrid, () => 1);
+  draw('objective-plot', `${title}. Relative likelihood is read on the right axis.`, probAxis, {
+    label: hasDensity ? 'Density' : '', rightLabel: 'Relative likelihood', domain: [0, limit], grid: hasDensity
+  }, [
+    priorData.length ? line(priorData, priorColor, '6 4') : null,
+    posterior ? line(posteriorData, posteriorColor) : null,
+    hasDensity ? Plot.axisY({anchor: 'left', ticks: 4}) : null,
+    ...likelihoodMarks(likelihood, limit)
+  ], 245);
   const description = posterior
-    ? `${betaText(posterior)} has mean ${percent(posterior.mean)}.`
+    ? `${betaMath(posterior.a, posterior.b)} has mean ${percent(posterior.mean)}.`
     : 'The posterior kernel has infinite integral. Haldane needs at least one head and one tail before a posterior density and mean exist.';
-  write('objective-note', description + (selected === 'jeffreys'
+  writeMath('objective-note', description + (selected === 'jeffreys'
     ? ' A curve that diverges at a boundary stops 0.01 from that boundary.'
     : ''));
   if (haldane) {
@@ -241,10 +312,10 @@ function renderCoordinates() {
   const cutoff = value('cutoff');
   const transformed = logOdds(cutoff);
   write('cutoff-value', cutoff.toFixed(2));
-  write('coordinate-summary', `P(θ ≤ ${cutoff.toFixed(2)}) = P(γ ≤ ${transformed.toFixed(2)}) = ${percent(cutoff)}.`);
+  writeMath('coordinate-summary', math(tex`P(\theta\le ${cutoff.toFixed(2)}) = P(\gamma\le ${transformed.toFixed(2)}) = ${percent(cutoff).slice(0, -1)}\%`) + '.');
   for (const {id, axis, fn, threshold} of [
     {id: 'probability-plot', axis: probAxis, fn: () => 1, threshold: cutoff},
-    {id: 'log-odds-plot', axis: {domain: [-8, 8], label: 'Log-odds, γ'}, fn: logOddsDensity, threshold: transformed}
+    {id: 'log-odds-plot', axis: {domain: [-8, 8], label: 'Log-odds', symbol: tex`\gamma`}, fn: logOddsDensity, threshold: transformed}
   ]) {
     const [low, high] = axis.domain;
     draw(id, `Density on the ${axis.label} scale, ${percent(cutoff)} below the cutoff`, axis, densityAxis, [
@@ -280,7 +351,6 @@ function stopGrowth() {
   if (growthFrame) {
     cancelAnimationFrame(growthFrame);
     growthFrame = 0;
-    renderObjective();
   }
   write('play-growth', stepManually ? 'Step through sample growth' : 'Play sample growth to 500');
 }
@@ -316,11 +386,22 @@ byId('reset-tosses').addEventListener('click', () => {
 for (const id of ['custom-alpha', 'custom-beta']) {
   byId(id).addEventListener('input', () => renderCustom(...counts()));
 }
-document.querySelectorAll('[data-example]').forEach(button => button.addEventListener('click', () => {
-  stopGrowth();
-  tosses = [...examples[button.dataset.example]];
-  renderCoin();
-}));
+const smallSampleX = byId('small-sample-x');
+const smallSampleN = byId('small-sample-n');
+smallSampleX.addEventListener('input', () => {
+  smallSampleN.value = Math.max(smallSampleN.valueAsNumber, smallSampleX.valueAsNumber);
+  renderSmallSample();
+});
+smallSampleN.addEventListener('input', () => {
+  smallSampleX.value = Math.min(smallSampleX.valueAsNumber, smallSampleN.valueAsNumber);
+  renderSmallSample();
+});
+byId('small-sample-extreme').addEventListener('click', () => {
+  smallSampleX.value = smallSampleX.max;
+  smallSampleN.value = smallSampleN.max;
+  renderSmallSample();
+});
+for (const id of ['objective-heads', 'objective-tails']) byId(id).addEventListener('input', renderObjective);
 byId('objective').addEventListener('toggle', renderObjective);
 byId('objective-prior').addEventListener('change', renderObjective);
 byId('coordinates').addEventListener('toggle', renderCoordinates);
@@ -343,8 +424,11 @@ byId('play-growth').addEventListener('click', () => {
 });
 window.addEventListener('resize', () => {
   coinPlots.clear();
+  renderSmallSample();
   renderCoin();
+  renderObjective();
   renderCoordinates();
 });
 stopGrowth();
+renderSmallSample();
 renderCoin();
