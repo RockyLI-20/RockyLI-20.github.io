@@ -1,8 +1,8 @@
 import {
   betaDensity, betaUpdate, countHeads, logOdds, logOddsDensity, relativeLikelihood
-} from './bayes-math.mjs?v=8180fc90994c';
-import {clopperPearson, discretize, highestDensity} from './inference-math.mjs?v=8180fc90994c';
-import {axisMath, betaMath, math, tex} from './math.mjs?v=8180fc90994c';
+} from './bayes-math.mjs?v=71a58d6efbfb';
+import {clopperPearson, discretize, highestDensity} from './inference-math.mjs?v=71a58d6efbfb';
+import {axisMath, betaMath, math, tex} from './math.mjs?v=71a58d6efbfb';
 
 const {Plot, d3} = window;
 const byId = id => document.getElementById(id);

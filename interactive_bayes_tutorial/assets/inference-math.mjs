@@ -1,4 +1,4 @@
-import {betaDensity, normalDensity} from './bayes-math.mjs?v=8180fc90994c';
+import {betaDensity, normalDensity} from './bayes-math.mjs?v=71a58d6efbfb';
 
 export function betaBinomial(n, a, b) {
   // Neighboring probabilities avoid direct evaluation of binomial coefficients.

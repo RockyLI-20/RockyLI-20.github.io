@@ -1,10 +1,10 @@
-import {betaDensity, betaUpdate, coinExample, countHeads, normalDensity, probability, relativeLikelihood} from './bayes-math.mjs?v=8180fc90994c';
+import {betaDensity, betaUpdate, coinExample, countHeads, normalDensity, probability, relativeLikelihood} from './bayes-math.mjs?v=71a58d6efbfb';
 import {
   betaBinomial, discretize, highestDensity, logBayesFactor,
   modelCriteria, quantile, regressionPosteriorSampler, shrinkageModes
-} from './inference-math.mjs?v=8180fc90994c';
-import {setupMcmcLab} from './mcmc-lab.mjs?v=8180fc90994c';
-import {axisMath, betaMath, math, tex} from './math.mjs?v=8180fc90994c';
+} from './inference-math.mjs?v=71a58d6efbfb';
+import {setupMcmcLab} from './mcmc-lab.mjs?v=71a58d6efbfb';
+import {axisMath, betaMath, math, tex} from './math.mjs?v=71a58d6efbfb';
 
 const {Plot, d3} = window;
 const byId = id => document.getElementById(id);
@@ -102,7 +102,7 @@ function renderInterval() {
     const right = Math.min(hi, visible[1]);
     return left < right ? curve(density, [left, right], 100).map(point => ({...point, region})) : [];
   });
-  const bounds = pair => `[${pair.map(format).join(', ')}]`;
+  const bounds = pair => `[${pair.map(bound => bound.toFixed(3)).join(', ')}]`;
   const interval = math(regions.map(bounds).join(tex` \cup `));
   const clipped = priorA < 1 || priorB < 1 ? ' The plot trims 0.01 near each diverging endpoint.' : '';
   writeMath('prediction-prior-distribution', betaMath(priorA, priorB));

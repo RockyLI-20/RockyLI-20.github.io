@@ -1,6 +1,6 @@
-import {normalDensity} from './bayes-math.mjs?v=8180fc90994c';
-import {acceptanceTrend, autocorrelation, effectiveSamples, mhMove, targets, tracePoints} from './mcmc-math.mjs?v=8180fc90994c';
-import {math, tex} from './math.mjs?v=8180fc90994c';
+import {normalDensity} from './bayes-math.mjs?v=71a58d6efbfb';
+import {acceptanceTrend, autocorrelation, effectiveSamples, mhMove, targets, tracePoints} from './mcmc-math.mjs?v=71a58d6efbfb';
+import {math, tex} from './math.mjs?v=71a58d6efbfb';
 
 const {Plot, d3} = window;
 const byId = id => document.getElementById(id);
@@ -305,12 +305,14 @@ export function setupMcmcLab(draw) {
 
     const rejection = step >= 20 && recentRates.some(rate => rate < 0.2);
     const slow = step >= 20 && acfs.some(acf => acf[1] >= 0.8);
+    const widerProposal = !rejection && slow && acfs.some((acf, i) => acf[1] >= 0.8 && recentRates[i] > 0.5);
     const stuck = distribution.value === 'mixture' && step >= 50 && chains.some(chain => chain.sides !== 3);
     parts.hint.dataset.state = rejection ? 'rejection' : slow || stuck ? 'slow' : 'ready';
     parts.hint.textContent = `${step.toLocaleString('en')} ${step === 1 ? 'step' : 'steps'} per chain. ${[
       step < 20 ? 'Run at least 20 steps for the first ESS and mixing hints.' : '',
       rejection ? 'Frequent recent rejections (acceptance below 20%). Try a smaller proposal SD.' : '',
-      slow ? 'High lag-1 autocorrelation (0.8 or above). If most moves are accepted, try a larger proposal SD.' : '',
+      slow ? 'High lag-1 autocorrelation (0.8 or above).' : '',
+      widerProposal ? 'A highly correlated chain accepts most recent proposals. Try a larger proposal SD.' : '',
       stuck ? 'At least one chain has visited only one side of the two-peak target.' : '',
       step >= 20 && !rejection && !slow && !stuck ? 'Compare the ACF decay and how much the traces overlap.' : ''
     ].filter(Boolean).join(' ')}`;

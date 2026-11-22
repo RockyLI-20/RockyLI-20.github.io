@@ -15,6 +15,8 @@
 .bayes-chapter-link { max-width: 42rem; border-top: 1px solid var(--rule); padding-top: 1.4rem; }
 .bayes-chapter-link h2 { font-size: clamp(1.4rem, 3vw, 2rem); margin-bottom: .35rem; }
 .bayes-chapter-link a { color: var(--accent); text-underline-offset: .18em; }
+.bayes-next-chapter { margin-top: 1.25rem; text-decoration: none; }
+.bayes-next-chapter:hover { border-color: var(--accent); }
 .bayes-inference .bayes-controls select { width: 100%; margin-bottom: .75rem; }
 .bayes-inference #prediction-prior { margin-bottom: .2rem; }
 .prediction-prior-distribution { font-size: .92rem; margin: 0; color: var(--muted); }
