@@ -1,0 +1,151 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Ruifeng LI — statistics research, AI development, teaching, and market research."><title>Chapter 3. Bayesian Modeling for Mixed Data | Ruifeng LI</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&display=swap" rel="stylesheet"><link rel="stylesheet" href="../style.css"><script src="../app.js" defer></script><link rel="stylesheet" href="assets/tutorial.css?v=f09e09e74d09"><link rel="stylesheet" href="assets/vendor/katex-0.19.1/katex.min.css"><script src="assets/vendor/katex-0.19.1/katex.min.js" defer></script></head><body><a class="skip" href="#main">Skip to content</a><header class="header wrap"><a class="brand" href="../index.html" aria-label="Ruifeng LI, home">Ruifeng LI</a><button class="menu-toggle" aria-expanded="false" aria-controls="nav">Menu <span>☰</span></button><nav id="nav" aria-label="Main navigation"><a href="../research.html">Research</a><a href="../teaching.html">Teaching</a><a href="../ai-development.html">AI Development</a><a href="../market-research.html">Market Research</a><a href="../writing.html">Writing</a></nav></header><main id="main"><article class="wrap bayes-page">
+  <a class="text-link" href="index.html">Interactive Bayesian Tool Box</a>
+  <p class="bayes-context">STAT 6206 · Chapter 3</p>
+  <h1>Bayesian Modeling for Mixed Data</h1>
+  <p class="bayes-intro">Generalized Linear Model (GLM), Generalized Linear Mixed Model (GLMM), Comparison of Gibbs Sampling and Metropolis-Hastings algorithm, Multilevel models</p>
+  <noscript><p>Enable JavaScript to run the experiment.</p></noscript>
+
+  <h2 class="bayes-advanced-title" id="glm-title">Why do we need a generalized linear model (GLM)?</h2>
+  <p>Compare linear regression and Poisson GLM (With 120 training observations and 60 testing points)</p>
+  <p><strong>Model Specification:</strong> The predictor is
+    <span data-tex="X\sim\operatorname{Poisson}(3)">X ∼ Poisson(3)</span>, and the response is
+    <span data-tex="Y\mid X=x\sim\operatorname{Poisson}(\mu(x))">Y | X = x ∼ Poisson(μ(x))</span>,
+    with <span data-tex="\log\mu(x)=-0.9+\beta x">log μ(x) = −0.9 + βx</span>.
+  </p>
+  <label class="bayes-range bayes-short-range">
+    <span><span>True slope <span data-tex="\beta">β</span></span> <output id="glm-slope-value" for="glm-slope">0.50</output></span>
+    <input id="glm-slope" type="range" min="0" max="0.55" step="0.01" value="0.50">
+  </label>
+  <ul class="bayes-legend" aria-label="Chart key">
+    <li class="glm-key-observed">Observed test counts (larger dots indicate repeats)</li>
+    <li>Fitted mean</li>
+    <li class="glm-key-true">True mean</li>
+  </ul>
+
+  <div class="bayes-pair glm-charts">
+    <figure class="bayes-figure">
+      <h3>Linear regression (OLS)</h3>
+      <p>Fits a straight line <span data-tex="\beta_0+\beta_1 x">β₀ + β₁x</span> by minimizing squared errors.</p>
+      <div id="ols-plot"></div>
+      <figcaption id="ols-score"></figcaption>
+    </figure>
+    <figure class="bayes-figure">
+      <h3>Poisson GLM</h3>
+      <p>Fits <span data-tex="\log\operatorname{E}[Y\mid X=x]=\beta_0+\beta_1 x">log E[Y | X = x] = β₀ + β₁x</span> by maximizing the Poisson likelihood.</p>
+      <div id="poisson-plot"></div>
+      <figcaption id="poisson-score"></figcaption>
+    </figure>
+  </div>
+  <p id="glm-comparison" class="bayes-feedback" role="status"></p>
+  <p class="bayes-reference">Test RMSE measures prediction error against the observed counts, in counts. Lower is better.</p>
+
+  <details class="bayes-explanation">
+    <summary>How it works</summary>
+    <p>Classical Gaussian regression assumes normal errors at each predictor value. Both models can use a Poisson predictor. The Poisson GLM models the count response directly, with variance equal to the conditional mean. Its log link keeps the predicted mean positive.</p>
+    <p class="bayes-reference"><a href="https://stat.ethz.ch/R-manual/R-devel/library/stats/html/family.html">GLM families and link functions</a></p>
+  </details>
+
+  <section id="gibbs-mh" aria-labelledby="gibbs-mh-title">
+    <h2 class="bayes-advanced-title" id="gibbs-mh-title">Gibbs sampler vs MH algorithm</h2>
+    <p>Run both samplers from the same starting points. Change the MH proposal to see how far it moves and how often it gets accepted.</p>
+    <div class="sampler-model">
+      <h3>Model specification</h3>
+      <p>Let <span data-tex="\mathbf z=(z_1,z_2)^\top\sim\mathcal N(\mathbf 0,\Sigma)">z = (z₁, z₂)ᵀ ∼ N(0, Σ)</span>, where
+        <span data-tex="\Sigma=\begin{pmatrix}\sigma_1^2&amp;0\\0&amp;\sigma_1^2\end{pmatrix}">Σ = diag(σ₁², σ₁²)</span>.
+        Define <span data-tex="\mathbf x=(x_1,x_2)^\top">x = (x₁, x₂)ᵀ</span>, with
+        <span data-tex="x_1=z_1">x₁ = z₁</span> and
+        <span data-tex="x_2=z_2+b(z_1^2-\sigma_1^2)">x₂ = z₂ + b(z₁² − σ₁²)</span>.</p>
+      <div data-display data-tex="p(\mathbf x)=\mathcal N\!\left(\begin{pmatrix}x_1\\x_2-b(x_1^2-\sigma_1^2)\end{pmatrix};\,\mathbf 0,\Sigma\right)">p(x) = N((x₁, x₂ − b(x₁² − σ₁²))ᵀ; 0, Σ)</div>
+    </div>
+    <div class="mh-controls sampler-controls">
+      <fieldset class="sampler-targets">
+        <legend>Target distribution</legend>
+        <label><input type="radio" name="sampler-target" value="regular"> Regular</label>
+        <label><input type="radio" name="sampler-target" value="complex" checked> Complex</label>
+      </fieldset>
+      <label id="sampler-proposal-control">MH proposal SD
+        <select id="sampler-proposal">
+          <option value="0.15">Too small</option>
+          <option value="1" selected>Moderate</option>
+          <option value="6">Too large</option>
+        </select>
+      </label>
+      <label>Chains per sampler
+        <select id="sampler-chain-count">
+          <option value="1">1</option><option value="2" selected>2</option><option value="3">3</option>
+        </select>
+      </label>
+    </div>
+    <div class="bayes-count-controls sampler-parameters">
+      <label class="bayes-range">
+        <span><span>Standard deviation <span data-tex="\sigma_1">σ₁</span></span> <output id="sampler-sigma-value" for="sampler-sigma">3.0</output></span>
+        <input id="sampler-sigma" type="range" min="1" max="5" step="0.1" value="3">
+      </label>
+      <div>
+        <label class="bayes-range">
+          <span><span>Curvature <span data-tex="b">b</span></span> <output id="sampler-bend-value" for="sampler-bend">0.20</output></span>
+          <input id="sampler-bend" type="range" min="0" max="0.3" step="0.01" value="0.2" aria-describedby="sampler-bend-hint">
+        </label>
+        <p class="bayes-reference" id="sampler-bend-hint">(Try <span data-tex="b=0">b = 0</span> to recover the regular distribution.)</p>
+      </div>
+    </div>
+    <p class="bayes-reference" id="sampler-target-note">Banana-shaped target.</p>
+    <div class="bayes-utility sampler-actions">
+      <button type="button" class="bayes-action" id="sampler-live">Run live</button>
+      <button type="button" class="bayes-secondary" id="sampler-pause" disabled>Pause</button>
+      <button type="button" class="bayes-secondary" id="sampler-batch">Simulate next 200 rounds</button>
+      <button type="button" class="bayes-quiet" id="sampler-reset">Reset chains</button>
+      <output id="sampler-rounds">0 / 2,000 rounds per chain</output>
+    </div>
+    <ul class="bayes-legend sampler-legend" aria-label="Chart key">
+      <li class="sampler-key-target">Target density contours</li>
+      <li class="sampler-key-chain" data-sampler-chain="0">Chain 1</li>
+      <li class="sampler-key-chain" data-sampler-chain="1">Chain 2</li>
+      <li class="sampler-key-chain" data-sampler-chain="2" hidden>Chain 3</li>
+    </ul>
+
+    <div class="bayes-pair sampler-charts">
+      <section class="sampler-panel" aria-labelledby="sampler-gibbs-title">
+        <h3 id="sampler-gibbs-title">Gibbs sampler</h3>
+        <p class="mh-hint" id="sampler-gibbs-hint">Draws directly from the two full conditionals.</p>
+        <figure class="bayes-figure">
+          <div id="sampler-gibbs-density"></div>
+          <figcaption id="sampler-gibbs-metrics"></figcaption>
+        </figure>
+        <figure class="bayes-figure sampler-trace">
+          <h4>Trace of <span data-tex="x_1">x₁</span></h4>
+          <div id="sampler-gibbs-trace"></div>
+        </figure>
+      </section>
+      <section class="sampler-panel" aria-labelledby="sampler-mh-title">
+        <h3 id="sampler-mh-title">Metropolis–Hastings</h3>
+        <p class="mh-hint" id="sampler-mh-hint"></p>
+        <figure class="bayes-figure">
+          <div id="sampler-mh-density"></div>
+          <figcaption id="sampler-mh-metrics"></figcaption>
+        </figure>
+        <figure class="bayes-figure sampler-trace">
+          <h4>Trace of <span data-tex="x_1">x₁</span></h4>
+          <div id="sampler-mh-trace"></div>
+        </figure>
+      </section>
+    </div>
+    <p class="bayes-feedback sampler-conclusion" id="sampler-conclusion"></p>
+    <details class="bayes-explanation">
+      <summary>How to read the comparison</summary>
+      <p>A Gibbs round draws <span data-tex="X_1\mid X_2">X₁ | X₂</span> by rejection sampling and then draws
+        <span data-tex="X_2\mid X_1">X₂ | X₁</span> from its Normal conditional.
+        An MH round proposes one joint Normal move. The proposal SD presets are
+        <span data-tex="0.15\sigma_1,\ \sigma_1,\ 6\sigma_1">0.15σ₁, σ₁, 6σ₁</span>.
+        Regular fixes <span data-tex="b=0">b = 0</span> and uses proposal SD <span data-tex="\sigma_1">σ₁</span>.</p>
+      <p>The contours show the known density. Samples accumulate as the chains run, and points are visible within the plot window.
+        ESS uses within-chain autocorrelations for up to the most recent 1,000 draws per chain.</p>
+      <p class="bayes-reference"><a href="https://www.ma.imperial.ac.uk/~das01/MyWeb/SCBI/Papers/GelfandSmith.pdf">Gelfand and Smith on sampling from full conditionals</a></p>
+    </details>
+  </section>
+</article>
+<script src="assets/vendor/d3-7.9.0.min.js" defer></script>
+<script src="assets/vendor/plot-0.6.19.min.js" defer></script>
+<script src="assets/ch03.mjs?v=f09e09e74d09" type="module"></script>
+<script src="assets/gibbs-lab.mjs?v=f09e09e74d09" type="module"></script>
+</main><footer><div class="wrap footer-inner"><div><a class="footer-brand" href="../index.html">Ruifeng LI<span>✳</span></a><p>Statistics, ideas, and the work in between.</p></div><div class="footer-links"><a href="../index.html#honors">Honors and Awards</a><a href="../research.html">Research</a><a href="../teaching.html">Teaching</a><a href="../ai-development.html">AI Development</a><a href="../market-research.html">Market Research</a><a href="../writing.html">Writing</a><a href="https://www.linkedin.com/in/ruifeng-li-78461b2b7/">LinkedIn ↗</a></div><p class="copyright">© 2026 Ruifeng LI</p></div></footer></body></html>

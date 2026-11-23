@@ -1,10 +1,10 @@
-import {betaDensity, betaUpdate, coinExample, countHeads, normalDensity, probability, relativeLikelihood} from './bayes-math.mjs?v=71a58d6efbfb';
+import {betaDensity, betaUpdate, coinExample, countHeads, normalDensity, probability, relativeLikelihood} from './bayes-math.mjs?v=f09e09e74d09';
 import {
   betaBinomial, discretize, highestDensity, logBayesFactor,
   modelCriteria, quantile, regressionPosteriorSampler, shrinkageModes
-} from './inference-math.mjs?v=71a58d6efbfb';
-import {setupMcmcLab} from './mcmc-lab.mjs?v=71a58d6efbfb';
-import {axisMath, betaMath, math, tex} from './math.mjs?v=71a58d6efbfb';
+} from './inference-math.mjs?v=f09e09e74d09';
+import {setupMcmcLab} from './mcmc-lab.mjs?v=f09e09e74d09';
+import {axisMath, betaMath, math, tex} from './math.mjs?v=f09e09e74d09';
 
 const {Plot, d3} = window;
 const byId = id => document.getElementById(id);
@@ -192,10 +192,11 @@ function samplePrediction() {
 
 const checkNormal = d3.randomNormal.source(d3.randomLcg(6208))();
 const makeCheckData = size => Array.from({length: size}, () => ({x: [checkNormal(), checkNormal()], error: checkNormal()}));
-const checkTrain = makeCheckData(60);
-const checkTest = makeCheckData(120).sort((a, b) => a.x[1] - b.x[1]);
-const checkGroups = d3.range(0, checkTest.length, 20).map(start => ({
-  start, x: d3.mean(checkTest.slice(start, start + 20), row => row.x[1])
+const checkTrain = makeCheckData(120);
+const checkTest = makeCheckData(60).sort((a, b) => a.x[1] - b.x[1]);
+const checkGroupSize = 10;
+const checkGroups = d3.range(0, checkTest.length, checkGroupSize).map(start => ({
+  start, x: d3.mean(checkTest.slice(start, start + checkGroupSize), row => row.x[1])
 }));
 const checkBandwidth = 0.45;
 const checkKernel = normalDensity(0, checkBandwidth);
@@ -226,7 +227,7 @@ function renderCheck() {
     : d3.extent([observed, ...full, ...reduced].flat()).map((bound, i) => bound + (i ? 3 : -3) * checkBandwidth);
   const xs = range(...xDomain, 100);
   const series = trend
-    ? outcomes => checkGroups.map(({x, start}) => ({x, y: d3.mean(outcomes.slice(start, start + 20))}))
+    ? outcomes => checkGroups.map(({x, start}) => ({x, y: d3.mean(outcomes.slice(start, start + checkGroupSize))}))
     : outcomes => xs.map(x => ({x, y: d3.mean(outcomes, y => checkKernel(x - y))}));
   const observedSeries = series(observed);
   const models = [

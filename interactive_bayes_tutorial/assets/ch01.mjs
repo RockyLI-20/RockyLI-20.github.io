@@ -1,8 +1,8 @@
 import {
   betaDensity, betaUpdate, countHeads, logOdds, logOddsDensity, relativeLikelihood
-} from './bayes-math.mjs?v=71a58d6efbfb';
-import {clopperPearson, discretize, highestDensity} from './inference-math.mjs?v=71a58d6efbfb';
-import {axisMath, betaMath, math, tex} from './math.mjs?v=71a58d6efbfb';
+} from './bayes-math.mjs?v=f09e09e74d09';
+import {clopperPearson, discretize, highestDensity} from './inference-math.mjs?v=f09e09e74d09';
+import {axisMath, betaMath, math, tex} from './math.mjs?v=f09e09e74d09';
 
 const {Plot, d3} = window;
 const byId = id => document.getElementById(id);
@@ -97,7 +97,8 @@ function renderSmallSample() {
   const n = value('small-sample-n');
   const x = value('small-sample-x');
   const estimate = x / n;
-  const posterior = betaUpdate(1, 1, x, n - x);
+  const prior = {a: 5, b: 5};
+  const posterior = betaUpdate(prior.a, prior.b, x, n - x);
   const [lo, hi] = clopperPearson(x, n);
   const density = betaDensity(posterior.a, posterior.b);
   const regions = highestDensity(discretize(density, t => t), 0.95);
@@ -105,8 +106,9 @@ function renderSmallSample() {
   const intervalText = bounds => `[${bounds.map(bound => bound.toFixed(3)).join(', ')}]`;
   const ci = intervalText([lo, hi]);
   const hpd = regions.map(intervalText).join(' ∪ ');
+  const priorData = coinDensity(prior.a, prior.b);
   const posteriorData = coinDensity(posterior.a, posterior.b);
-  const limit = 1.18 * d3.max(posteriorData, point => point.y);
+  const limit = 1.18 * d3.max([...priorData, ...posteriorData], point => point.y);
   const comparison = 2 * x === n ? 'same as' : 'pulled back from';
 
   write('small-sample-x-value', x);
@@ -124,10 +126,10 @@ function renderSmallSample() {
       Plot.ruleX([lo, hi], {y1: -0.07, y2: 0.07, stroke: evidenceColor, strokeWidth: 2}),
       Plot.dot([{x: estimate, y: 0}], {x: 'x', y: 'y', fill: evidenceColor, stroke: 'white', r: 6})
     ]);
-  draw('small-sample-density', `Uniform prior, ${betaText(posterior)} posterior, 95% highest posterior density interval ${hpd}, and relative likelihood on the right axis`,
+  draw('small-sample-density', `${betaText(prior)} prior, ${betaText(posterior)} posterior, 95% highest posterior density interval ${hpd}, and relative likelihood on the right axis`,
     probAxis, {...densityAxis, rightLabel: 'Relative likelihood', domain: [0, limit]}, [
       Plot.areaY(shade, {x: 'x', y: 'y', z: 'region', fill: posteriorColor, fillOpacity: 0.27}),
-      line(coinDensity(1, 1), priorColor, '6 4'),
+      line(priorData, priorColor, '6 4'),
       line(posteriorData, posteriorColor),
       Plot.axisY({anchor: 'left', ticks: 4}),
       ...likelihoodMarks(coinLikelihood(x, n - x), limit)
