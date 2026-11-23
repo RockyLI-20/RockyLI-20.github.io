@@ -10,13 +10,15 @@
 
 .bayes-context { color: var(--accent); font-size: .9rem; font-weight: 700; margin: 1.85rem 0 .55rem; }
 .bayes-page h1 { font-size: clamp(2.2rem, 5vw, 4.2rem); margin-bottom: .6rem; line-height: 1.05; }
+.bayes-page h2 { font-size: clamp(1.65rem, 3.6vw, 2rem); }
+.bayes-page h3 { font-size: clamp(1.07rem, 2.5vw, 1.24rem); }
+.bayes-page h4 { font-size: 1rem; }
 .bayes-intro { color: var(--muted); font-size: 1.18rem; max-width: 62ch; margin-bottom: 1.75rem; }
 .bayes-index { min-height: 53vh; }
 .bayes-chapter-link { max-width: 42rem; border-top: 1px solid var(--rule); padding-top: 1.4rem; }
-.bayes-chapter-link h2 { font-size: clamp(1.4rem, 3vw, 2rem); margin-bottom: .35rem; }
+.bayes-chapter-link h2 { margin-bottom: .35rem; }
 .bayes-chapter-link a { color: var(--accent); text-underline-offset: .18em; }
-.bayes-next-chapter { margin-top: 1.25rem; text-decoration: none; }
-.bayes-next-chapter:hover { border-color: var(--accent); }
+.bayes-next-chapter { margin-top: 1.25rem; }
 .bayes-inference .bayes-controls select { width: 100%; margin-bottom: .75rem; }
 .bayes-inference #prediction-prior { margin-bottom: .2rem; }
 .prediction-prior-distribution { font-size: .92rem; margin: 0; color: var(--muted); }
@@ -45,11 +47,9 @@
 .check-controls select { margin-bottom: 0; }
 .bayes-legend .check-key-observed::before { border-color: var(--ink); border-width: 3px; }
 .bayes-legend .check-key-replicated::before { border-color: #789e91; }
-.check-charts .bayes-figure { container-type: inline-size; padding: .75rem; background: var(--lab); border: 1px solid var(--rule); }
-.check-charts .bayes-figure-title { font-size: clamp(.95rem, 7cqi, 1.24rem); }
+.check-charts .bayes-figure { padding: .75rem; background: var(--lab); border: 1px solid var(--rule); }
 .glm-charts .bayes-figure { padding: .8rem; background: var(--lab); border: 1px solid var(--rule); }
-#glm-title { font-size: clamp(1.65rem, 3.6vw, 2.7rem); }
-.glm-charts .bayes-figure h3 { font-size: 1.35rem; margin: 0 0 .25rem; }
+.glm-charts .bayes-figure h3 { margin: 0 0 .25rem; }
 .glm-charts .bayes-figure > p { min-height: 3em; }
 .glm-charts figcaption { border-top: 1px solid var(--rule); padding-top: .6rem; }
 .glm-charts figcaption strong { color: var(--ink); }
@@ -58,10 +58,12 @@
 #glm-comparison { margin: .7rem 0 0; }
 #gibbs-mh { margin-top: 2.6rem; }
 .sampler-model { margin: .85rem 0 1rem; padding: .65rem .8rem; border-left: 3px solid var(--accent); background: #ebf0ea; }
-.sampler-model h3 { margin: 0 0 .45rem; font-size: 1.18rem; }
+.sampler-model h3 { margin: 0 0 .45rem; }
 .sampler-model p { margin: .25rem 0; }
 .sampler-model .katex-display, .sampler-model .katex-display > .katex { text-align: left; }
-.sampler-controls { margin-bottom: .45rem; }
+.sampler-controls { align-items: start; margin-bottom: .45rem; }
+.sampler-proposal { flex: 0 1 23rem; }
+.sampler-proposal .bayes-range, .sampler-proposal .bayes-reference { margin: 0; }
 .sampler-targets { padding: .35rem .6rem; margin: 0; border: 1px solid var(--rule); border-radius: .35rem; }
 .sampler-targets legend { padding-inline: .25rem; }
 .sampler-targets label { display: inline-flex; align-items: center; gap: .3rem; padding: .15rem .35rem; }
@@ -73,14 +75,14 @@
 .bayes-legend .sampler-key-target::before { border-top-color: #77877d; }
 .bayes-legend .sampler-key-chain::before { width: .55rem; height: .55rem; border: 0; border-radius: 50%; background: var(--chain-color); }
 .sampler-panel { min-width: 0; padding: .8rem; border: 1px solid var(--rule); background: var(--lab); }
-.sampler-panel h3 { font-size: 1.35rem; margin: 0 0 .25rem; }
+.sampler-panel h3 { margin: 0 0 .25rem; }
 .sampler-panel .mh-hint { min-height: 3.2em; }
 .sampler-panel svg { margin-inline: auto; }
 .sampler-density-stage { position: relative; margin-inline: auto; }
 .sampler-density-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .sampler-density-stage svg { position: relative; }
 .sampler-trace { border-top: 1px solid var(--rule); margin-top: .65rem; padding-top: .4rem; }
-.sampler-trace h4 { margin: 0 0 .15rem; color: var(--accent); font-size: .93rem; }
+.sampler-trace h4 { margin: 0 0 .15rem; color: var(--accent); }
 .sampler-conclusion { margin-top: .75rem; }
 .bf-lab { max-width: 55rem; }
 .bf-models, .bf-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
@@ -88,7 +90,7 @@
 .bf-definitions > div { display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: baseline; gap: .35rem; border-top: 1px solid var(--rule); padding: .5rem 0; }
 .bf-definitions > div > strong { color: var(--ink); font-size: 1rem; font-weight: 700; }
 .bf-definitions > div > span { min-width: 0; }
-.bf-heading { font-size: 1.2rem; margin: 0 0 .3rem; }
+.bf-heading { margin: 0 0 .3rem; }
 .bf-formula { padding: .45rem .55rem .6rem; background: #eeefe7; }
 .bf-formula { font-size: clamp(.78rem, 2.75vw, 1.35rem); }
 .bf-controls { padding: .85rem 0 .3rem; align-items: start; }
@@ -96,7 +98,7 @@
 .bf-results > p:first-child { margin-bottom: .35rem; font-weight: 700; }
 .bf-model { --bf-fill: var(--muted); min-width: 0; border: 1px solid var(--rule); border-top: 3px solid var(--bf-fill); padding: .65rem .75rem; background: var(--lab); }
 .bf-alternative { --bf-fill: var(--accent); }
-.bf-model h4 { margin: 0 0 .55rem; font-size: 1rem; }
+.bf-model h4 { margin: 0 0 .55rem; }
 .bf-reading { display: grid; grid-template-columns: minmax(0, 1fr) 5.5ch; align-items: start; gap: .6rem; }
 .bf-reading output { color: var(--bf-fill); font-size: 1.22rem; font-variant-numeric: tabular-nums; font-weight: 700; line-height: 1; text-align: right; }
 .bf-reading meter { display: block; width: 100%; height: 1rem; }
@@ -115,11 +117,11 @@
   .bf-reading { grid-template-columns: minmax(0, 1fr); gap: .35rem; }
   .bf-reading output { grid-row: 1; text-align: left; }
 }
-.lasso-spec-heading { font-size: 1.2rem; margin: 0 0 .3rem; }
+.lasso-spec-heading { margin: 0 0 .3rem; }
 .lasso-model { max-width: 30rem; margin: .55rem 0 .8rem; }
 .lasso-model .katex-display { text-align: left; }
 .criteria-specification { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: .4rem; }
-.criteria-heading { font-size: clamp(.9rem, 3vw, 1.2rem); margin: 0; }
+.criteria-heading { margin: 0; }
 .criteria-equation { width: fit-content; margin: .5rem 0 .65rem; font-size: clamp(.9rem, 3vw, 1.15rem); }
 .criteria-specification .criteria-equation { margin: 0; }
 .criteria-models { display: flex; flex-wrap: wrap; align-items: baseline; gap: .3rem 1.65rem; }
@@ -148,7 +150,7 @@
 .mh-settings { display: grid; gap: 1rem; }
 .mh-settings.mh-comparing { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
 .mh-setting { container-type: inline-size; min-width: 0; background: var(--lab); border: 1px solid var(--rule); padding: .95rem; }
-.mh-setting > h3 { font-size: 1.35rem; margin-bottom: .4rem; }
+.mh-setting > h3 { margin-bottom: .4rem; }
 .mh-setting > .bayes-range { max-width: 22rem; }
 .mh-hint { border-left: 3px solid var(--accent); padding: .35rem .55rem; background: #ebf0ea; font-size: .91rem; margin: .35rem 0 .65rem; }
 .mh-hint[data-state="slow"] { border-color: #97752c; background: #f5efdf; }
@@ -158,7 +160,7 @@
 .mh-swatch { display: inline-block; vertical-align: middle; margin-right: .4rem; width: .9rem; border-top: 2px var(--chain-style) var(--chain-color); }
 .mh-charts { display: grid; gap: .75rem 1rem; grid-template-columns: minmax(0, 1fr); }
 .mh-charts figure { border-top: 1px solid var(--rule); padding-top: .55rem; }
-.mh-charts h4 { margin: 0 0 .25rem; font-size: 1rem; color: var(--accent); }
+.mh-charts h4 { margin: 0 0 .25rem; color: var(--accent); }
 .mh-charts figure > p, .mh-charts figcaption { font-size: .88rem; }
 .mh-target { cursor: crosshair; }
 .mh-start { display: flex; flex-wrap: wrap; align-items: end; gap: .25rem .55rem; margin: .25rem 0 .45rem; font-size: .87rem; }
@@ -182,11 +184,10 @@
   background: var(--lab);
 }
 .bayes-controls { padding: 1.3rem; background: #f1f0e6; border-right: 1px solid var(--rule); }
-.bayes-controls h2 { font-size: 1.65rem; margin-bottom: 1rem; }
 .bayes-views { min-width: 0; padding: 1.1rem 1.3rem 1.25rem; }
 .bayes-custom { display: grid; grid-column: 1 / -1; grid-template-columns: var(--bayes-columns); border-top: 1px solid var(--rule); }
 .bayes-custom .bayes-controls { min-width: 0; padding-top: 1.1rem; }
-.bayes-custom > :is(.bayes-controls, .bayes-figure) > h3 { font-size: 1.24rem; line-height: 1.25; margin: 0; }
+.bayes-custom > :is(.bayes-controls, .bayes-figure) > h3 { line-height: 1.25; margin: 0; }
 .bayes-custom .bayes-legend { margin-top: .35rem; }
 .bayes-page button, .bayes-page select { font: inherit; font-size: .96rem; min-height: 2.65rem; border-radius: .3rem; }
 .bayes-page button { cursor: pointer; }
@@ -215,7 +216,7 @@
 .bayes-toss-log [data-tails] { background: #f8e8d9; border-color: #b9815e; color: #753b23; }
 .bayes-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.05rem; }
 .bayes-figure { margin: 0; min-width: 0; }
-.bayes-figure h3 { font-size: 1.24rem; margin: 0; }
+.bayes-figure h3 { margin: 0; }
 .bayes-figure .bayes-figure-title { color: var(--ink); font-weight: 700; }
 .bayes-figure > p { color: var(--muted); margin-bottom: 0; font-size: .92rem; }
 .bayes-figure svg { display: block; max-width: 100%; height: auto; }
@@ -234,7 +235,7 @@
 .bayes-page details summary { color: var(--accent); padding: .8rem 0; cursor: pointer; font-weight: 700; }
 .bayes-explanation { margin-top: 1.1rem; }
 .bayes-explanation p, .bayes-advanced-body > p { max-width: 74ch; }
-.bayes-advanced-title { font-size: 2rem; margin: 2.2rem 0 .45rem; }
+.bayes-advanced-title { margin: 2.2rem 0 .45rem; }
 .bayes-advanced:last-of-type { border-block-end: 1px solid var(--rule); }
 .bayes-advanced-body { padding: .35rem 0 1.4rem; }
 .bayes-advanced-body > p { margin-bottom: .7rem; }
@@ -262,7 +263,6 @@
   .bayes-workbench { --bayes-columns: minmax(172px, .85fr) minmax(0, 2.3fr); grid-template-columns: minmax(0, 1fr); }
   .bayes-controls { border-right: 0; border-bottom: 1px solid var(--rule); }
   .bayes-custom .bayes-controls { border-right: 1px solid var(--rule); border-bottom: 0; }
-  .bayes-custom > :is(.bayes-controls, .bayes-figure) > h3 { font-size: 1.07rem; }
   .bayes-mobile-means { display: block; margin: -.45rem 0 .65rem; color: var(--accent); font-size: .9rem; font-weight: 700; }
 }
 @media (max-width: 560px) {
@@ -272,7 +272,6 @@
   .bayes-controls, .bayes-views { padding: .9rem; }
   .bayes-custom { grid-template-columns: minmax(134px, .85fr) minmax(0, 2.3fr); }
   .bayes-custom > :is(.bayes-controls, .bayes-figure) { padding: .75rem .45rem; }
-  .bayes-custom > :is(.bayes-controls, .bayes-figure) > h3 { font-size: .92rem; }
   .bayes-custom .bayes-axis-label { font-size: .68rem; }
   .bayes-pair { grid-template-columns: minmax(0, 1fr); }
 }

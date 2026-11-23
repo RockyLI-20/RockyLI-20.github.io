@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Ruifeng LI — statistics research, AI development, teaching, and market research."><title>Chapter 3. Bayesian Modeling for Mixed Data | Ruifeng LI</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&display=swap" rel="stylesheet"><link rel="stylesheet" href="../style.css"><script src="../app.js" defer></script><link rel="stylesheet" href="assets/tutorial.css?v=f09e09e74d09"><link rel="stylesheet" href="assets/vendor/katex-0.19.1/katex.min.css"><script src="assets/vendor/katex-0.19.1/katex.min.js" defer></script></head><body><a class="skip" href="#main">Skip to content</a><header class="header wrap"><a class="brand" href="../index.html" aria-label="Ruifeng LI, home">Ruifeng LI</a><button class="menu-toggle" aria-expanded="false" aria-controls="nav">Menu <span>☰</span></button><nav id="nav" aria-label="Main navigation"><a href="../research.html">Research</a><a href="../teaching.html">Teaching</a><a href="../ai-development.html">AI Development</a><a href="../market-research.html">Market Research</a><a href="../writing.html">Writing</a></nav></header><main id="main"><article class="wrap bayes-page">
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Ruifeng LI — statistics research, AI development, teaching, and market research."><title>Chapter 3. Bayesian Modeling for Mixed Data | Ruifeng LI</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&display=swap" rel="stylesheet"><link rel="stylesheet" href="../style.css"><script src="../app.js" defer></script><link rel="stylesheet" href="assets/tutorial.css?v=b22720b201be"><link rel="stylesheet" href="assets/vendor/katex-0.19.1/katex.min.css"><script src="assets/vendor/katex-0.19.1/katex.min.js" defer></script></head><body><a class="skip" href="#main">Skip to content</a><header class="header wrap"><a class="brand" href="../index.html" aria-label="Ruifeng LI, home">Ruifeng LI</a><button class="menu-toggle" aria-expanded="false" aria-controls="nav">Menu <span>☰</span></button><nav id="nav" aria-label="Main navigation"><a href="../research.html">Research</a><a href="../teaching.html">Teaching</a><a href="../ai-development.html">AI Development</a><a href="../market-research.html">Market Research</a><a href="../writing.html">Writing</a></nav></header><main id="main"><article class="wrap bayes-page">
   <a class="text-link" href="index.html">Interactive Bayesian Tool Box</a>
   <p class="bayes-context">STAT 6206 · Chapter 3</p>
   <h1>Bayesian Modeling for Mixed Data</h1>
@@ -63,18 +63,13 @@
         <label><input type="radio" name="sampler-target" value="regular"> Regular</label>
         <label><input type="radio" name="sampler-target" value="complex" checked> Complex</label>
       </fieldset>
-      <label id="sampler-proposal-control">MH proposal SD
-        <select id="sampler-proposal">
-          <option value="0.15">Too small</option>
-          <option value="1" selected>Moderate</option>
-          <option value="6">Too large</option>
-        </select>
-      </label>
-      <label>Chains per sampler
-        <select id="sampler-chain-count">
-          <option value="1">1</option><option value="2" selected>2</option><option value="3">3</option>
-        </select>
-      </label>
+      <div class="sampler-proposal" id="sampler-proposal-control">
+        <label class="bayes-range">
+          <span>MH proposal SD <output id="sampler-proposal-value" for="sampler-proposal">3</output></span>
+          <input id="sampler-proposal" type="range" min="0.05" max="30" step="0.05" value="3" aria-describedby="sampler-proposal-hint">
+        </label>
+        <p class="bayes-reference" id="sampler-proposal-hint">Try 0.45 / 3 / 18 to compare too-small, moderate, and too-large proposal SDs with the default target.</p>
+      </div>
     </div>
     <div class="bayes-count-controls sampler-parameters">
       <label class="bayes-range">
@@ -101,7 +96,6 @@
       <li class="sampler-key-target">Target density contours</li>
       <li class="sampler-key-chain" data-sampler-chain="0">Chain 1</li>
       <li class="sampler-key-chain" data-sampler-chain="1">Chain 2</li>
-      <li class="sampler-key-chain" data-sampler-chain="2" hidden>Chain 3</li>
     </ul>
 
     <div class="bayes-pair sampler-charts">
@@ -114,7 +108,11 @@
         </figure>
         <figure class="bayes-figure sampler-trace">
           <h4>Trace of <span data-tex="x_1">x₁</span></h4>
-          <div id="sampler-gibbs-trace"></div>
+          <div id="sampler-gibbs-trace-1"></div>
+        </figure>
+        <figure class="bayes-figure sampler-trace">
+          <h4>Trace of <span data-tex="x_2">x₂</span></h4>
+          <div id="sampler-gibbs-trace-2"></div>
         </figure>
       </section>
       <section class="sampler-panel" aria-labelledby="sampler-mh-title">
@@ -126,7 +124,11 @@
         </figure>
         <figure class="bayes-figure sampler-trace">
           <h4>Trace of <span data-tex="x_1">x₁</span></h4>
-          <div id="sampler-mh-trace"></div>
+          <div id="sampler-mh-trace-1"></div>
+        </figure>
+        <figure class="bayes-figure sampler-trace">
+          <h4>Trace of <span data-tex="x_2">x₂</span></h4>
+          <div id="sampler-mh-trace-2"></div>
         </figure>
       </section>
     </div>
@@ -135,8 +137,7 @@
       <summary>How to read the comparison</summary>
       <p>A Gibbs round draws <span data-tex="X_1\mid X_2">X₁ | X₂</span> by rejection sampling and then draws
         <span data-tex="X_2\mid X_1">X₂ | X₁</span> from its Normal conditional.
-        An MH round proposes one joint Normal move. The proposal SD presets are
-        <span data-tex="0.15\sigma_1,\ \sigma_1,\ 6\sigma_1">0.15σ₁, σ₁, 6σ₁</span>.
+        An MH round proposes one joint Normal move. With the complex target, the slider sets the proposal SD on both coordinates.
         Regular fixes <span data-tex="b=0">b = 0</span> and uses proposal SD <span data-tex="\sigma_1">σ₁</span>.</p>
       <p>The contours show the known density. Samples accumulate as the chains run, and points are visible within the plot window.
         ESS uses within-chain autocorrelations for up to the most recent 1,000 draws per chain.</p>
@@ -146,6 +147,6 @@
 </article>
 <script src="assets/vendor/d3-7.9.0.min.js" defer></script>
 <script src="assets/vendor/plot-0.6.19.min.js" defer></script>
-<script src="assets/ch03.mjs?v=f09e09e74d09" type="module"></script>
-<script src="assets/gibbs-lab.mjs?v=f09e09e74d09" type="module"></script>
+<script src="assets/ch03.mjs?v=b22720b201be" type="module"></script>
+<script src="assets/gibbs-lab.mjs?v=b22720b201be" type="module"></script>
 </main><footer><div class="wrap footer-inner"><div><a class="footer-brand" href="../index.html">Ruifeng LI<span>✳</span></a><p>Statistics, ideas, and the work in between.</p></div><div class="footer-links"><a href="../index.html#honors">Honors and Awards</a><a href="../research.html">Research</a><a href="../teaching.html">Teaching</a><a href="../ai-development.html">AI Development</a><a href="../market-research.html">Market Research</a><a href="../writing.html">Writing</a><a href="https://www.linkedin.com/in/ruifeng-li-78461b2b7/">LinkedIn ↗</a></div><p class="copyright">© 2026 Ruifeng LI</p></div></footer></body></html>

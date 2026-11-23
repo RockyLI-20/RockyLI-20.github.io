@@ -1,6 +1,6 @@
-import {bananaTarget} from './gibbs-math.mjs?v=f09e09e74d09';
-import {axisMath, math} from './math.mjs?v=f09e09e74d09';
-import {autocorrelation, effectiveSamples, mhMove, tracePoints} from './mcmc-math.mjs?v=f09e09e74d09';
+import {bananaTarget} from './gibbs-math.mjs?v=b22720b201be';
+import {axisMath, math} from './math.mjs?v=b22720b201be';
+import {autocorrelation, effectiveSamples, mhMove, tracePoints} from './mcmc-math.mjs?v=b22720b201be';
 
 const {d3, Plot} = window;
 const byId = id => document.getElementById(id);
@@ -11,15 +11,14 @@ const traceRefreshMs = 30;
 const targetRefreshMs = 120;
 const diagnosticRefreshMs = 280;
 const recentStates = 1000;
-const colors = ['#245d5b', '#a34739', '#65517b'];
-const dashes = [null, '5 3', '2 3'];
+const colors = ['#245d5b', '#a34739'];
+const dashes = [null, '5 3'];
 const contourColor = '#77877d';
 const formatRound = d3.format(',d');
 const formatMean = d3.format('.2f');
 const controls = [...document.querySelectorAll('input[name="sampler-target"]')];
 const swatches = [...document.querySelectorAll('[data-sampler-chain]')];
 const proposal = byId('sampler-proposal');
-const chainCount = byId('sampler-chain-count');
 const sigma = byId('sampler-sigma');
 const bend = byId('sampler-bend');
 const live = byId('sampler-live');
@@ -33,7 +32,6 @@ let target;
 let targetKey;
 let contours;
 let complexBend = bend.value;
-let proposalScale;
 let sd;
 let samplers;
 let round = 0;
@@ -58,7 +56,7 @@ function targetContours({domains: [[left, right], [bottom, top]], logDensity}) {
 }
 
 function makeChains(seed) {
-  return target.starts.slice(0, Number(chainCount.value)).map((state, index) => {
+  return target.starts.slice(0, colors.length).map((state, index) => {
     const random = d3.randomLcg(seed + index);
     return {draws: [{state, step: 0}], random, normal: d3.randomNormal.source(random)(), accepted: 0, sums: [0, 0]};
   });
@@ -83,8 +81,8 @@ function reset() {
     target = bananaTarget(sigmaValue, bendValue);
     contours = targetContours(target);
   }
-  proposalScale = complex ? Number(proposal.value) : 1;
-  sd = proposalScale * sigmaValue;
+  sd = complex ? proposal.valueAsNumber : sigmaValue;
+  byId('sampler-proposal-value').value = proposal.value;
   byId('sampler-sigma-value').value = sigmaValue.toFixed(1);
   byId('sampler-bend-value').value = bendValue.toFixed(2);
   byId('sampler-proposal-control').hidden = !complex;
@@ -98,10 +96,6 @@ function reset() {
       return result.next;
     }}
   ];
-  swatches.forEach((item, i) => {
-    item.hidden = i >= samplers[0].chains.length;
-    item.style.setProperty('--chain-color', colors[i]);
-  });
   render();
 }
 
@@ -190,22 +184,22 @@ function densityPlot(sampler) {
   });
 }
 
-function makeTrace(sampler, host, width) {
+function makeTrace(sampler, host, width, coordinate) {
   const bottom = 121;
   const right = width - 12;
   const svg = Plot.plot({
     width, height: 160, marginLeft: 39, marginRight: 12, marginTop: 8, marginBottom: 39,
-    ariaLabel: `${sampler.name} traces for x1 from the start of each chain`,
+    ariaLabel: `${sampler.name} traces for x${coordinate + 1} from the start of each chain`,
     style: {background: 'transparent', fontFamily: 'inherit', fontSize: 12},
     x: {axis: null},
-    y: {domain: target.domains[0], label: null, grid: true, ticks: 5},
+    y: {domain: target.domains[coordinate], label: null, grid: true, ticks: 5},
     marks: []
   });
   const chart = d3.select(svg);
   const axis = chart.append('g').attr('transform', `translate(0,${bottom})`);
   chart.append('text').attr('x', right).attr('y', 153).attr('text-anchor', 'end')
     .attr('fill', 'currentColor').text('Round →');
-  const layer = plotLayer(svg, `sampler-${sampler.id}-trace-clip`, 39, right, 8, bottom);
+  const layer = plotLayer(svg, `${host.id}-clip`, 39, right, 8, bottom);
   const paths = sampler.chains.map((_, i) => layer.append('path').attr('fill', 'none')
     .attr('stroke', colors[i]).attr('stroke-dasharray', dashes[i]).attr('stroke-opacity', 0.75));
   const current = sampler.chains.map((_, i) => layer.append('circle').attr('fill', colors[i]).attr('r', 2.5));
@@ -213,24 +207,26 @@ function makeTrace(sampler, host, width) {
   return {width, axis, paths, current, x: d3.scaleLinear([0, 1], [39, right]), y: svg.scale('y').apply};
 }
 
-function tracePlot(sampler) {
-  const host = byId(`sampler-${sampler.id}-trace`);
+function tracePlot(sampler, coordinate) {
+  const host = byId(`sampler-${sampler.id}-trace-${coordinate + 1}`);
   const width = host.clientWidth;
-  if (!sampler.trace || sampler.trace.width !== width) sampler.trace = makeTrace(sampler, host, width);
-  const {x, y, axis, paths, current} = sampler.trace;
+  const traces = sampler.traces ??= [];
+  if (traces[coordinate]?.width !== width) traces[coordinate] = makeTrace(sampler, host, width, coordinate);
+  const {x, y, axis, paths, current} = traces[coordinate];
   x.domain([0, Math.max(1, round)]);
   axis.call(d3.axisBottom(x).ticks(5).tickFormat(n => Number.isInteger(n) ? formatRound(n) : '').tickSizeOuter(0));
   const buckets = Math.max(1, Math.floor((width - 51) / 2));
-  const line = d3.line().x(d => x(d.step)).y(d => y(d.state[0]));
+  const line = d3.line().x(d => x(d.step)).y(d => y(d.state[coordinate]));
   sampler.chains.forEach(({draws}, i) => {
-    paths[i].attr('d', line(tracePoints(draws, 0, buckets)));
-    current[i].attr('cx', x(round)).attr('cy', y(draws.at(-1).state[0]));
+    paths[i].attr('d', line(tracePoints(draws, coordinate, buckets)));
+    current[i].attr('cx', x(round)).attr('cy', y(draws.at(-1).state[coordinate]));
   });
 }
 
 function render(update = 'all') {
   for (const sampler of samplers) {
-    tracePlot(sampler);
+    tracePlot(sampler, 0);
+    tracePlot(sampler, 1);
     if (update === 'all') densityPlot(sampler);
   }
   if (update === 'trace') return;
@@ -256,7 +252,7 @@ function render(update = 'all') {
   const acceptance = round ? d3.sum(chains, c => c.accepted) / (round * chains.length) : 0;
   const rate = round ? `${d3.format('.0%')(acceptance)} accepted. ` : '';
   const hint = byId('sampler-mh-hint');
-  hint.dataset.state = round >= 20 && acceptance < 0.2 ? 'rejection' : proposalScale === 0.15 ? 'slow' : 'ready';
+  hint.dataset.state = round >= 20 && acceptance < 0.2 ? 'rejection' : sd / sigma.valueAsNumber <= 0.15 ? 'slow' : 'ready';
   hint.textContent = rate + (hint.dataset.state === 'rejection'
     ? 'High rejection rate. The chain often repeats its current state.'
     : hint.dataset.state === 'slow'
@@ -310,7 +306,8 @@ batch.addEventListener('click', () => {
   advance(batchSize);
   render();
 });
-for (const control of [...controls, proposal, chainCount]) control.addEventListener('change', reset);
+for (const control of controls) control.addEventListener('change', reset);
+proposal.addEventListener('input', reset);
 sigma.addEventListener('input', reset);
 bend.addEventListener('input', () => {
   complexBend = bend.value;
@@ -318,4 +315,5 @@ bend.addEventListener('input', () => {
 });
 byId('sampler-reset').addEventListener('click', reset);
 window.addEventListener('resize', () => render());
+swatches.forEach((item, i) => item.style.setProperty('--chain-color', colors[i]));
 reset();

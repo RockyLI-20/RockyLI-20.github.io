@@ -1,4 +1,4 @@
-import {axisMath, math} from './math.mjs?v=f09e09e74d09';
+import {axisMath, math} from './math.mjs?v=b22720b201be';
 
 const {d3, Plot} = window;
 const byId = id => document.getElementById(id);

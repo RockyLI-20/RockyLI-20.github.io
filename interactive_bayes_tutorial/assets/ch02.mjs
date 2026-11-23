@@ -1,10 +1,10 @@
-import {betaDensity, betaUpdate, coinExample, countHeads, normalDensity, probability, relativeLikelihood} from './bayes-math.mjs?v=f09e09e74d09';
+import {betaDensity, betaUpdate, coinExample, countHeads, normalDensity, probability, relativeLikelihood} from './bayes-math.mjs?v=b22720b201be';
 import {
   betaBinomial, discretize, highestDensity, logBayesFactor,
   modelCriteria, quantile, regressionPosteriorSampler, shrinkageModes
-} from './inference-math.mjs?v=f09e09e74d09';
-import {setupMcmcLab} from './mcmc-lab.mjs?v=f09e09e74d09';
-import {axisMath, betaMath, math, tex} from './math.mjs?v=f09e09e74d09';
+} from './inference-math.mjs?v=b22720b201be';
+import {setupMcmcLab} from './mcmc-lab.mjs?v=b22720b201be';
+import {axisMath, betaMath, math, tex} from './math.mjs?v=b22720b201be';
 
 const {Plot, d3} = window;
 const byId = id => document.getElementById(id);
