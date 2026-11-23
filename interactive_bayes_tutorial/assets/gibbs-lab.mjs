@@ -1,6 +1,6 @@
-import {bananaTarget} from './gibbs-math.mjs?v=b22720b201be';
-import {axisMath, math} from './math.mjs?v=b22720b201be';
-import {autocorrelation, effectiveSamples, mhMove, tracePoints} from './mcmc-math.mjs?v=b22720b201be';
+import {bananaTarget} from './gibbs-math.mjs?v=608a0d229a30';
+import {axisMath, math} from './math.mjs?v=608a0d229a30';
+import {autocorrelation, effectiveSamples, mhMove, tracePoints} from './mcmc-math.mjs?v=608a0d229a30';
 
 const {d3, Plot} = window;
 const byId = id => document.getElementById(id);
@@ -252,7 +252,7 @@ function render(update = 'all') {
   const acceptance = round ? d3.sum(chains, c => c.accepted) / (round * chains.length) : 0;
   const rate = round ? `${d3.format('.0%')(acceptance)} accepted. ` : '';
   const hint = byId('sampler-mh-hint');
-  hint.dataset.state = round >= 20 && acceptance < 0.2 ? 'rejection' : sd / sigma.valueAsNumber <= 0.15 ? 'slow' : 'ready';
+  hint.dataset.state = round >= 20 && acceptance < 0.2 ? 'rejection' : sd / sigma.valueAsNumber <= 1 / 6 ? 'slow' : 'ready';
   hint.textContent = rate + (hint.dataset.state === 'rejection'
     ? 'High rejection rate. The chain often repeats its current state.'
     : hint.dataset.state === 'slow'

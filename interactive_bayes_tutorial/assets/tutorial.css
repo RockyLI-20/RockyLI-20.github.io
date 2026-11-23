@@ -56,20 +56,34 @@
 .bayes-legend .glm-key-observed::before { width: .55rem; height: .55rem; margin-right: .45rem; border: 0; border-radius: 50%; background: var(--ink); }
 .bayes-legend .glm-key-true::before { border-top: 2px dashed var(--evidence); }
 #glm-comparison { margin: .7rem 0 0; }
-#gibbs-mh { margin-top: 2.6rem; }
-.sampler-model { margin: .85rem 0 1rem; padding: .65rem .8rem; border-left: 3px solid var(--accent); background: #ebf0ea; }
-.sampler-model h3 { margin: 0 0 .45rem; }
-.sampler-model p { margin: .25rem 0; }
-.sampler-model .katex-display, .sampler-model .katex-display > .katex { text-align: left; }
-.sampler-controls { align-items: start; margin-bottom: .45rem; }
-.sampler-proposal { flex: 0 1 23rem; }
-.sampler-proposal .bayes-range, .sampler-proposal .bayes-reference { margin: 0; }
-.sampler-targets { padding: .35rem .6rem; margin: 0; border: 1px solid var(--rule); border-radius: .35rem; }
+#glmm, #gibbs-mh { margin-top: 2.6rem; }
+.bayes-model { margin: .85rem 0 1rem; padding: .65rem .8rem; border-left: 3px solid var(--accent); background: #ebf0ea; }
+.bayes-model h3 { margin: 0 0 .45rem; }
+.bayes-model p { margin: .25rem 0; }
+.bayes-model .katex-display, .bayes-model .katex-display > .katex { text-align: left; }
+.count-model-actions { margin-bottom: .85rem; }
+.count-model-comparison { margin: .7rem 0 0; }
+.bayes-legend :is(.glmm-key-truth, .glmm-key-fit)::before { width: .55rem; height: .55rem; border: 0; border-radius: 50%; }
+.bayes-legend .glmm-key-truth::before { border: 2px solid var(--evidence); }
+.bayes-legend .glmm-key-fit::before { background: var(--posterior); }
+.dispersion-controls .bayes-reference { margin: -.35rem 0 .45rem; }
+.dispersion-charts .bayes-figure > p { min-height: 1.75em; }
+.bayes-legend .dispersion-key-interval::before { height: .65em; border: 0; background: #d6e4dc; }
+.dispersion-variance { margin-top: 1.25rem; max-width: 42rem; }
+.sampler-targets { width: fit-content; padding: .35rem .6rem; margin: 0 0 1.1rem; border: 1px solid var(--rule); border-radius: .35rem; }
 .sampler-targets legend { padding-inline: .25rem; }
 .sampler-targets label { display: inline-flex; align-items: center; gap: .3rem; padding: .15rem .35rem; }
 .sampler-targets input { margin: 0; accent-color: var(--accent); }
-.sampler-controls + .bayes-reference { margin: .45rem 0; }
-.sampler-parameters .bayes-reference { margin: -.35rem 0 .45rem; }
+.sampler-parameters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem 1.6rem; max-width: 62rem; }
+.sampler-parameters .bayes-range { margin: 0; }
+.sampler-parameters .bayes-reference { margin: .2rem 0 0; }
+.sampler-regular-name { white-space: nowrap; }
+@media (max-width: 800px) {
+  .sampler-parameters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 500px) {
+  .sampler-parameters { grid-template-columns: minmax(0, 1fr); }
+}
 .sampler-actions { align-items: center; margin-bottom: .85rem; }
 .sampler-actions output { color: var(--muted); font-size: .92rem; font-variant-numeric: tabular-nums; }
 .bayes-legend .sampler-key-target::before { border-top-color: #77877d; }

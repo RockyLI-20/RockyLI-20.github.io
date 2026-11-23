@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Ruifeng LI — statistics research, AI development, teaching, and market research."><title>Chapter 3. Bayesian Modeling for Mixed Data | Ruifeng LI</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&display=swap" rel="stylesheet"><link rel="stylesheet" href="../style.css"><script src="../app.js" defer></script><link rel="stylesheet" href="assets/tutorial.css?v=b22720b201be"><link rel="stylesheet" href="assets/vendor/katex-0.19.1/katex.min.css"><script src="assets/vendor/katex-0.19.1/katex.min.js" defer></script></head><body><a class="skip" href="#main">Skip to content</a><header class="header wrap"><a class="brand" href="../index.html" aria-label="Ruifeng LI, home">Ruifeng LI</a><button class="menu-toggle" aria-expanded="false" aria-controls="nav">Menu <span>☰</span></button><nav id="nav" aria-label="Main navigation"><a href="../research.html">Research</a><a href="../teaching.html">Teaching</a><a href="../ai-development.html">AI Development</a><a href="../market-research.html">Market Research</a><a href="../writing.html">Writing</a></nav></header><main id="main"><article class="wrap bayes-page">
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Ruifeng LI — statistics research, AI development, teaching, and market research."><title>Chapter 3. Bayesian Modeling for Mixed Data | Ruifeng LI</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&display=swap" rel="stylesheet"><link rel="stylesheet" href="../style.css"><script src="../app.js" defer></script><link rel="stylesheet" href="assets/tutorial.css?v=608a0d229a30"><link rel="stylesheet" href="assets/vendor/katex-0.19.1/katex.min.css"><script src="assets/vendor/katex-0.19.1/katex.min.js" defer></script></head><body><a class="skip" href="#main">Skip to content</a><header class="header wrap"><a class="brand" href="../index.html" aria-label="Ruifeng LI, home">Ruifeng LI</a><button class="menu-toggle" aria-expanded="false" aria-controls="nav">Menu <span>☰</span></button><nav id="nav" aria-label="Main navigation"><a href="../research.html">Research</a><a href="../teaching.html">Teaching</a><a href="../ai-development.html">AI Development</a><a href="../market-research.html">Market Research</a><a href="../writing.html">Writing</a></nav></header><main id="main"><article class="wrap bayes-page">
   <a class="text-link" href="index.html">Interactive Bayesian Tool Box</a>
   <p class="bayes-context">STAT 6206 · Chapter 3</p>
   <h1>Bayesian Modeling for Mixed Data</h1>
@@ -48,7 +48,7 @@
   <section id="gibbs-mh" aria-labelledby="gibbs-mh-title">
     <h2 class="bayes-advanced-title" id="gibbs-mh-title">Gibbs sampler vs MH algorithm</h2>
     <p>Run both samplers from the same starting points. Change the MH proposal to see how far it moves and how often it gets accepted.</p>
-    <div class="sampler-model">
+    <div class="bayes-model">
       <h3>Model specification</h3>
       <p>Let <span data-tex="\mathbf z=(z_1,z_2)^\top\sim\mathcal N(\mathbf 0,\Sigma)">z = (z₁, z₂)ᵀ ∼ N(0, Σ)</span>, where
         <span data-tex="\Sigma=\begin{pmatrix}\sigma_1^2&amp;0\\0&amp;\sigma_1^2\end{pmatrix}">Σ = diag(σ₁², σ₁²)</span>.
@@ -57,21 +57,19 @@
         <span data-tex="x_2=z_2+b(z_1^2-\sigma_1^2)">x₂ = z₂ + b(z₁² − σ₁²)</span>.</p>
       <div data-display data-tex="p(\mathbf x)=\mathcal N\!\left(\begin{pmatrix}x_1\\x_2-b(x_1^2-\sigma_1^2)\end{pmatrix};\,\mathbf 0,\Sigma\right)">p(x) = N((x₁, x₂ − b(x₁² − σ₁²))ᵀ; 0, Σ)</div>
     </div>
-    <div class="mh-controls sampler-controls">
-      <fieldset class="sampler-targets">
-        <legend>Target distribution</legend>
-        <label><input type="radio" name="sampler-target" value="regular"> Regular</label>
-        <label><input type="radio" name="sampler-target" value="complex" checked> Complex</label>
-      </fieldset>
-      <div class="sampler-proposal" id="sampler-proposal-control">
+    <fieldset class="sampler-targets">
+      <legend>Target distribution</legend>
+      <label><input type="radio" name="sampler-target" value="regular"> Regular</label>
+      <label><input type="radio" name="sampler-target" value="complex" checked> Complex</label>
+    </fieldset>
+    <div class="sampler-parameters">
+      <div id="sampler-proposal-control">
         <label class="bayes-range">
           <span>MH proposal SD <output id="sampler-proposal-value" for="sampler-proposal">3</output></span>
-          <input id="sampler-proposal" type="range" min="0.05" max="30" step="0.05" value="3" aria-describedby="sampler-proposal-hint">
+          <input id="sampler-proposal" type="range" min="0.05" max="10" step="0.05" value="3" aria-describedby="sampler-proposal-hint">
         </label>
-        <p class="bayes-reference" id="sampler-proposal-hint">Try 0.45 / 3 / 18 to compare too-small, moderate, and too-large proposal SDs with the default target.</p>
+        <p class="bayes-reference" id="sampler-proposal-hint">Try 0.5 / 3 / 10 to compare small, moderate, and large proposal SDs.</p>
       </div>
-    </div>
-    <div class="bayes-count-controls sampler-parameters">
       <label class="bayes-range">
         <span><span>Standard deviation <span data-tex="\sigma_1">σ₁</span></span> <output id="sampler-sigma-value" for="sampler-sigma">3.0</output></span>
         <input id="sampler-sigma" type="range" min="1" max="5" step="0.1" value="3">
@@ -81,7 +79,7 @@
           <span><span>Curvature <span data-tex="b">b</span></span> <output id="sampler-bend-value" for="sampler-bend">0.20</output></span>
           <input id="sampler-bend" type="range" min="0" max="0.3" step="0.01" value="0.2" aria-describedby="sampler-bend-hint">
         </label>
-        <p class="bayes-reference" id="sampler-bend-hint">(Try <span data-tex="b=0">b = 0</span> to recover the regular distribution.)</p>
+        <p class="bayes-reference" id="sampler-bend-hint">(Try <span data-tex="b=0">b = 0</span> to recover the <span class="sampler-regular-name">regular distribution.)</span></p>
       </div>
     </div>
     <p class="bayes-reference" id="sampler-target-note">Banana-shaped target.</p>
@@ -144,9 +142,137 @@
       <p class="bayes-reference"><a href="https://www.ma.imperial.ac.uk/~das01/MyWeb/SCBI/Papers/GelfandSmith.pdf">Gelfand and Smith on sampling from full conditionals</a></p>
     </details>
   </section>
+
+  <section id="glmm" aria-labelledby="glmm-title">
+    <h2 class="bayes-advanced-title" id="glmm-title">Poisson GLM vs GLMM</h2>
+    <p>How much does a group-specific intercept improve predictions? Change the true between-group SD and compare both fits with the simulated truth.</p>
+
+    <div class="bayes-model">
+      <h3>Model Specification</h3>
+      <p><span data-tex="y_{ij}\mid x_{ij},u_j\sim\operatorname{Poisson}(\mu_{ij})">yᵢⱼ | xᵢⱼ, uⱼ ∼ Poisson(μᵢⱼ)</span>,
+        <span data-tex="\log\mu_{ij}=\beta_0+\beta_1x_{ij}+u_j">log μᵢⱼ = β₀ + β₁xᵢⱼ + uⱼ</span>,
+        <span data-tex="x_{ij}\sim N(0,1)">xᵢⱼ ∼ N(0,1)</span>,
+        <span data-tex="u_j\sim N(0,\tau^2)">uⱼ ∼ N(0,τ²)</span>.</p>
+      <p>5 groups with 5–30 training observations each. The true intercept is <span data-tex="\beta_0=-0.5">β₀ = −0.5</span>.</p>
+      <p><strong>Fitting priors</strong> <span data-tex="\beta_k\stackrel{\mathrm{iid}}{\sim} N(0,2^2),\quad k=0,1">βₖ ∼ N(0,2²), k = 0,1</span> in both models.
+        <span data-tex="\tau\sim\operatorname{HalfNormal}(0,1)">τ ∼ Half-Normal(0,1)</span> (GLMM only).</p>
+    </div>
+
+    <div class="bayes-count-controls">
+      <label class="bayes-range">
+        <span><span>True between-group SD <span data-tex="\tau">τ</span></span> <output id="glmm-tau-value" for="glmm-tau">0.50</output></span>
+        <input id="glmm-tau" type="range" min="0" max="2" step="0.05" value="0.5">
+      </label>
+      <label class="bayes-range">
+        <span><span>True slope <span data-tex="\beta_1">β₁</span></span> <output id="glmm-slope-value" for="glmm-slope">0.80</output></span>
+        <input id="glmm-slope" type="range" min="0" max="2" step="0.05" value="0.8">
+      </label>
+    </div>
+    <div class="bayes-utility count-model-actions">
+      <button type="button" class="bayes-action" id="glmm-resimulate">Resimulate data</button>
+      <button type="button" class="bayes-quiet" id="glmm-reset">Reset to default</button>
+    </div>
+    <ul class="bayes-legend" aria-label="Chart key">
+      <li class="glmm-key-truth">True mean</li>
+      <li class="glmm-key-fit">Predicted mean</li>
+    </ul>
+
+    <div class="bayes-pair glm-charts">
+      <figure class="bayes-figure">
+        <h3>Poisson GLM</h3>
+        <p><strong>No random effects · Complete pooling</strong><br>
+          <span data-tex="\log\mu_{ij}=\beta_0+\beta_1 x_{ij}">log μᵢⱼ = β₀ + β₁xᵢⱼ</span></p>
+        <div id="glmm-glm-plot"></div>
+        <figcaption id="glmm-glm-score"></figcaption>
+      </figure>
+      <figure class="bayes-figure">
+        <h3>Poisson GLMM</h3>
+        <p><strong>With random intercept · Partial pooling</strong><br>
+          <span data-tex="\log\mu_{ij}=\beta_0+\beta_1 x_{ij}+u_j">log μᵢⱼ = β₀ + β₁xᵢⱼ + uⱼ</span></p>
+        <div id="glmm-glmm-plot"></div>
+        <figcaption id="glmm-glmm-score"></figcaption>
+      </figure>
+    </div>
+    <p class="bayes-feedback count-model-comparison" id="glmm-comparison" role="status"></p>
+    <p class="bayes-reference">Each point averages over the same 40 held-out predictor values. RMSE compares the five predicted means with the five true means.</p>
+    <details class="bayes-explanation">
+      <summary>How partial pooling works</summary>
+      <p>The GLM uses one intercept for all groups. The GLMM estimates a separate intercept for each group and pulls it toward the shared intercept, typically more strongly when a group has less information. The sliders set the true parameters used to generate the data. The fits estimate their parameters from the training counts.</p>
+      <p>The figures use approximate posterior predictive means. A Laplace approximation fits the coefficients, and numerical quadrature averages the GLMM predictions over the posterior of <span data-tex="\tau">τ</span>. <a href="https://mc-stan.org/docs/reference-manual/laplace_embedded.html">Laplace approximation reference</a></p>
+    </details>
+  </section>
+
+  <h2 class="bayes-advanced-title">Explore further</h2>
+  <details class="bayes-advanced" id="overdispersion">
+    <summary>Explore overdispersion</summary>
+    <div class="bayes-advanced-body">
+      <p>Compare how Poisson and negative binomial regression predict counts with the same log link.</p>
+      <div class="bayes-model">
+        <h3>Model Specification</h3>
+        <p><span data-tex="y_i\mid x_i\sim\operatorname{NB}(\mu_i,\phi)">yᵢ | xᵢ ∼ NB(μᵢ, φ)</span>,
+          <span data-tex="\log\mu_i=\beta_0+\beta_1x_i">log μᵢ = β₀ + β₁xᵢ</span>,
+          <span data-tex="x_i\sim N(0,2)">xᵢ ∼ N(0,2)</span>.</p>
+        <p>100 training observations with true intercept <span data-tex="\beta_0=1">β₀ = 1</span>.</p>
+        <p><strong>Fitting priors</strong> <span data-tex="\beta_k\stackrel{\mathrm{iid}}{\sim}N(0,2^2),\quad k=0,1">βₖ ∼ N(0,2²), k = 0,1</span> in both models.
+          <span data-tex="\phi\sim\operatorname{Gamma}(2,1)">φ ∼ Gamma(2,1)</span> (shape–rate, negative binomial only).</p>
+      </div>
+      <div class="bayes-count-controls dispersion-controls">
+        <div>
+          <label class="bayes-range">
+            <span><span>True dispersion parameter <span data-tex="\phi">φ</span></span> <output id="dispersion-phi-value" for="dispersion-phi">2.50</output></span>
+            <input id="dispersion-phi" type="range" min="0.5" max="5" step="0.05" value="2.5" aria-describedby="dispersion-phi-hint">
+          </label>
+          <p class="bayes-reference" id="dispersion-phi-hint">Smaller <span data-tex="\phi">φ</span> gives stronger overdispersion.</p>
+        </div>
+        <label class="bayes-range">
+          <span><span>True slope <span data-tex="\beta_1">β₁</span></span> <output id="dispersion-slope-value" for="dispersion-slope">0.50</output></span>
+          <input id="dispersion-slope" type="range" min="0" max="2" step="0.05" value="0.5">
+        </label>
+      </div>
+      <div class="bayes-utility count-model-actions">
+        <button type="button" class="bayes-action" id="dispersion-resimulate">Resimulate data</button>
+        <button type="button" class="bayes-quiet" id="dispersion-reset">Reset to default</button>
+      </div>
+      <ul class="bayes-legend" aria-label="Prediction chart key">
+        <li class="glm-key-observed">Training counts</li>
+        <li>Fitted mean</li>
+        <li class="dispersion-key-interval">95% prediction interval</li>
+      </ul>
+      <div class="bayes-pair glm-charts dispersion-charts">
+        <figure class="bayes-figure">
+          <h3>Poisson</h3>
+          <p><span data-tex="\operatorname{Var}(Y_i\mid x_i)=\mu_i">Var(Yᵢ | xᵢ) = μᵢ</span></p>
+          <div id="dispersion-poisson"></div>
+          <figcaption id="dispersion-poisson-score"></figcaption>
+        </figure>
+        <figure class="bayes-figure">
+          <h3>Negative Binomial</h3>
+          <p><span data-tex="\operatorname{Var}(Y_i\mid x_i)=\mu_i+\mu_i^2/\phi">Var(Yᵢ | xᵢ) = μᵢ + μᵢ² / φ</span></p>
+          <div id="dispersion-nb"></div>
+          <figcaption id="dispersion-nb-score"></figcaption>
+        </figure>
+      </div>
+      <p class="bayes-feedback count-model-comparison" id="dispersion-comparison" role="status"></p>
+      <p class="bayes-reference">The bands show equal-tailed intervals for a single future count at the fitted parameters. Coverage and log likelihood use a separate set of 100 simulated test observations.</p>
+
+      <figure class="bayes-figure dispersion-variance">
+        <h3>Variance vs mean</h3>
+        <ul class="bayes-legend" aria-label="Variance chart key">
+          <li class="glm-key-observed">Sample variance by bin</li>
+          <li>Poisson variance</li>
+          <li class="glm-key-true">Negative binomial variance at true <span data-tex="\phi">φ</span></li>
+        </ul>
+        <div id="dispersion-variance"></div>
+        <figcaption>Each dot summarizes 20 training observations with nearby predictor values. The curves show the conditional variance at a given mean.</figcaption>
+      </figure>
+      <p class="bayes-reference">Fits use a Laplace approximation for the coefficients and integrate over the negative binomial dispersion with numerical quadrature. <a href="https://mc-stan.org/docs/functions-reference/unbounded_discrete_distributions.html#negative-binomial-distribution-alternative-parameterization">Negative binomial parameterization</a></p>
+    </div>
+  </details>
 </article>
 <script src="assets/vendor/d3-7.9.0.min.js" defer></script>
 <script src="assets/vendor/plot-0.6.19.min.js" defer></script>
-<script src="assets/ch03.mjs?v=b22720b201be" type="module"></script>
-<script src="assets/gibbs-lab.mjs?v=b22720b201be" type="module"></script>
+<script src="assets/ch03.mjs?v=608a0d229a30" type="module"></script>
+<script src="assets/gibbs-lab.mjs?v=608a0d229a30" type="module"></script>
+<script src="assets/glmm-lab.mjs?v=608a0d229a30" type="module"></script>
+<script src="assets/dispersion-lab.mjs?v=608a0d229a30" type="module"></script>
 </main><footer><div class="wrap footer-inner"><div><a class="footer-brand" href="../index.html">Ruifeng LI<span>✳</span></a><p>Statistics, ideas, and the work in between.</p></div><div class="footer-links"><a href="../index.html#honors">Honors and Awards</a><a href="../research.html">Research</a><a href="../teaching.html">Teaching</a><a href="../ai-development.html">AI Development</a><a href="../market-research.html">Market Research</a><a href="../writing.html">Writing</a><a href="https://www.linkedin.com/in/ruifeng-li-78461b2b7/">LinkedIn ↗</a></div><p class="copyright">© 2026 Ruifeng LI</p></div></footer></body></html>

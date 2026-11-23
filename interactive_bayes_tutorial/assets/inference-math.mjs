@@ -1,4 +1,4 @@
-import {betaDensity, normalDensity} from './bayes-math.mjs?v=b22720b201be';
+import {betaDensity, normalDensity} from './bayes-math.mjs?v=608a0d229a30';
 
 export function betaBinomial(n, a, b) {
   // Neighboring probabilities avoid direct evaluation of binomial coefficients.
@@ -73,7 +73,7 @@ export function logBayesFactor(heads, tails, shape) {
   return logFactor;
 }
 
-function choleskySolver(matrix, diagonal) {
+export function choleskySolver(matrix, diagonal) {
   const size = matrix.length;
   const lower = Array.from({length: size}, () => Array(size).fill(0));
   for (let i = 0; i < size; i += 1) {
@@ -99,7 +99,8 @@ function choleskySolver(matrix, diagonal) {
     }
     return solveUpper(solution);
   };
-  return {solve, solveUpper};
+  const halfLogDet = lower.reduce((sum, row, i) => sum + Math.log(row[i]), 0);
+  return {solve, solveUpper, halfLogDet};
 }
 
 function regressionProducts(design, response) {
